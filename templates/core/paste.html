@@ -1,0 +1,9 @@
+{% extends "core/base.html" %}
+
+{% block content %}
+    <pre>
+        <code id="code-out" class="{{ content_type }}">
+{{ content }}
+        </code>
+    </pre>
+{% endblock content %}

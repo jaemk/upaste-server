@@ -1,0 +1,35 @@
+[package]
+name = "upaste-server"
+version = "0.1.0"
+authors = ["James Kominick <james.kominick@gmail.com>"]
+
+[dependencies]
+clap = "2.21"
+dotenv = "0.8"
+error-chain = "0.9"
+
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
+
+tera = "0.8"
+
+uuid = { version = "0.4", features = ["v4", "serde"] }
+chrono = { version = "0.3", features = ["serde"] }
+
+diesel = { version = "0.11", features = ["postgres", "chrono", "uuid"] }
+diesel_codegen = { version = "0.11", features = ["postgres"] }
+
+r2d2 = "0.7"
+r2d2-diesel = "0.12"
+
+env_logger = "*"
+
+iron = "*"
+router = "*"
+logger = "*"
+persistent = "*"
+staticfile = "*"
+mount = "*"
+
+mime = "0.2.3"
