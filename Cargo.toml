@@ -8,14 +8,15 @@ clap = "2.21"
 dotenv = "0.8"
 error-chain = "0.9"
 
-serde = "0.9"
-serde_derive = "0.9"
-serde_json = "0.9"
+rand = "0.3"
+uuid = { version = "0.4", features = ["v4", "serde"] }
+chrono = { version = "0.3", features = ["serde"] }
 
 tera = "0.8"
 
-uuid = { version = "0.4", features = ["v4", "serde"] }
-chrono = { version = "0.3", features = ["serde"] }
+serde = "0.9"
+serde_derive = "0.9"
+serde_json = "0.9"
 
 diesel = { version = "0.11", features = ["postgres", "chrono", "uuid"] }
 diesel_codegen = { version = "0.11", features = ["postgres"] }

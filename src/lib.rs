@@ -1,7 +1,9 @@
-
+//! Crate imports
+//!
 extern crate dotenv;
 extern crate uuid;
 extern crate chrono;
+extern crate rand;
 
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate diesel_codegen;
