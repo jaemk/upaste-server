@@ -1,8 +1,27 @@
 language: rust
-rust:
-    - stable
-    - beta
-    - nightly
-matrix:
-    allow_failures:
-        - rust: nightly
+rust: stable
+sudo: false
+dist: trusty
+
+install:
+    - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
+    - cargo install diesel_cli --debug --no-default-features --features postgres && export PATH=$HOME/.cargo/bin:$PATH
+
+before_script:
+    - diesel database setup
+
+script:
+    - cargo build
+
+addons:
+    postgresql: "9.5"
+    apt:
+        packages:
+            - libcurl4-openssl-dev
+            - libelf-dev
+            - libdw-dev
+
+env:
+    global:
+        - DATABASE_URL=postgres://postgres:@localhost/upaste
+
