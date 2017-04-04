@@ -1,0 +1,41 @@
+{% extends "core/base.html" %}
+
+{% block head %}
+<script src="/static/js/edit.js"></script>
+{% endblock head %}
+
+
+{% block title_extra %}
+{% if paste_key %}
+<span id="paste-id"> {{ paste_key }} </span>
+{% endif %}
+{% endblock title_extra %}
+
+
+{% block header_extra %}
+{% if content %}
+    <span id="edit-paste" class="clickable"> Edit! </span>
+    <span id="save-paste" class="clickable" style="display: none;"> Save! </span>
+{% else %}
+    <span id="save-paste" class="clickable"> Save! </span>
+{% endif %}
+{% endblock header_extra %}
+
+
+{% block content %}
+<div>
+    <div id="editor-table">
+        <div id="editor-row">
+            <div id="gutter">
+            </div>
+            {% if content %}
+            <input id="paste-text" type="hidden" value="{{ content }}">
+                <pre id='editor'>
+            {% else %}
+                <pre id='editor' contenteditable>
+            {% endif %}
+            </pre>
+        </div>
+    </div>
+</div>
+{% endblock content %}

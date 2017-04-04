@@ -1,17 +1,27 @@
 <html>
+    <meta charset="utf-8">
     <head>
         <link rel="short icon" type="image/x-icon" href="/static/favicon.ico"/>
-        <!--
-        <link rel="stylesheet" href="/static/highlight/styles/default.css">
-        <script src="/static/highlight/highlight.pack.js"></script>
-        <script>hljs.initHighlightingOnLoad();</script>
-        -->
+        <link rel="stylesheet" href="/static/css/base.css">
+
         {% block head %}
         {% endblock head %}
     </head>
 
     <body>
-        <h1 style="border-style: solid; border-width: 0 0 1 0"> uPaste </h1>
+        <div id="header">
+            <div id="header-row">
+                <div id="header-left">
+                    <span id="header-title" onclick="window.location.href='/'"> &micro;Paste </span>
+                    {% block title_extra %}
+                    {% endblock title_extra %}
+                </div>
+                <div id="header-extra">
+                    {% block header_extra %}
+                    {% endblock header_extra %}
+                </div>
+            </div>
+        </div>
 
         {% block content %}
         {% endblock content %}
