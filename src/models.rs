@@ -1,6 +1,7 @@
 use schema::pastes;
 use chrono::{DateTime, UTC};
 
+
 #[derive(Queryable, Debug)]
 pub struct Paste {
     pub id: i32,
@@ -9,6 +10,7 @@ pub struct Paste {
     pub date_created: DateTime<UTC>,
     pub date_viewed: DateTime<UTC>,
 }
+
 
 #[derive(Insertable)]
 #[table_name="pastes"]
