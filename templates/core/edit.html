@@ -14,10 +14,10 @@
 
 {% block header_extra %}
 {% if content %}
-    <span id="edit-paste" class="clickable"> Edit! </span>
-    <span id="save-paste" class="clickable" style="display: none;"> Save! </span>
+    <span id="edit-paste" class="clickable button"> Edit! </span>
+    <span id="save-paste" class="clickable button" style="display: none;"> Save! </span>
 {% else %}
-    <span id="save-paste" class="clickable"> Save! </span>
+    <span id="save-paste" class="clickable button"> Save! </span>
 {% endif %}
 {% endblock header_extra %}
 
@@ -29,12 +29,13 @@
             <div id="gutter">
             </div>
             {% if content %}
+            <input id="tab-width" type="hidden" value="4">
             <input id="paste-text" type="hidden" value="{{ content }}">
-                <pre id='editor'>
+            <code id='editor' contenteditable=false>
             {% else %}
-                <pre id='editor' contenteditable>
+            <code id='editor' contenteditable=true>
             {% endif %}
-            </pre>
+            </code>
         </div>
     </div>
 </div>
