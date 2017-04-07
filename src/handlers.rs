@@ -114,8 +114,9 @@ pub fn view_paste(req: &mut Request) -> IronResult<Response> {
     let arc = req.get::<PerRead<TERA>>().unwrap();
     let templates = arc.as_ref();
     let mut context = Context::new();
-    context.add("content", &paste.content);
     context.add("paste_key", &paste.key);
+    context.add("content", &paste.content);
+    context.add("content_type", &paste.content_type);
     let content = templates.render("core/edit.html", &context).unwrap();
     let content_type = mime!(Text/Html);
     Ok(Response::with((content_type, status::Ok, content)))
