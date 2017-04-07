@@ -8,6 +8,7 @@
 {% block title_extra %}
 {% if paste_key %}
 <span id="paste-id"> {{ paste_key }} </span>
+<span id="share" class="clickable button tiny"> share </span>
 {% endif %}
 {% endblock title_extra %}
 
@@ -31,7 +32,8 @@
             {% if content %}
             <input id="tab-width" type="hidden" value="4">
             <input id="paste-text" type="hidden" value="{{ content }}">
-            <code id='editor' contenteditable=false>
+            <input id="paste-type" type="hidden" value="{{ content_type }}">
+            <code id='editor' class="" contenteditable=false>
             {% else %}
             <code id='editor' contenteditable=true>
             {% endif %}

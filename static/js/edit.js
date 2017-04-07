@@ -94,6 +94,9 @@ document.addEventListener("DOMContentLoaded", function() {
     var edit   = document.getElementById("edit-paste");     // edit-paste button/element
     var gutter = document.getElementById("gutter");         // line-num gutter
     var pasteText = document.getElementById("paste-text");  // hidden input holding paste content on-load
+    var pasteType = document.getElementById("paste-type");
+    var pasteId = document.getElementById("paste-id");
+    var share = document.getElementById("share");
 
     // set initial gutter and editor content
     gutter.innerText = '1 >';
@@ -232,4 +235,14 @@ document.addEventListener("DOMContentLoaded", function() {
         editor.innerText = text;
         handleInput(null, editor);
     }
+
+
+    if (pasteId && share) {
+        share.addEventListener("click", function(){
+            window.prompt("Copy to clipboard", window.location.host + '/' + pasteId.innerText);
+        });
+    }
+
+
+    hljs.highlightBlock(editor);
 });
