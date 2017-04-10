@@ -7,13 +7,18 @@
 
 {% block title_extra %}
 {% if paste_key %}
-<span id="paste-id"> {{ paste_key }} </span>
+<span id="paste-id" class="tiny"> {{ paste_key }} </span>
 <span id="share" class="clickable button tiny"> share </span>
 {% endif %}
 {% endblock title_extra %}
 
 
 {% block header_extra %}
+<select id="type-selector" {% if content %}style="display: none;"{% endif %}>
+    {% for c_type in content_types %}
+        <option value="{{ c_type }}">{{ c_type }}</option>
+    {% endfor %}
+</select>
 {% if content %}
     <span id="edit-paste" class="clickable button"> Edit! </span>
     <span id="save-paste" class="clickable button" style="display: none;"> Save! </span>
@@ -35,7 +40,7 @@
             <input id="paste-type" type="hidden" value="{{ content_type }}">
             <code id='editor' class="" contenteditable=false>
             {% else %}
-            <code id='editor' contenteditable=true>
+            <code id='editor' class="" contenteditable=true>
             {% endif %}
             </code>
         </div>

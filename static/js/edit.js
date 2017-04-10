@@ -88,6 +88,14 @@ function getCurrentCursorPosition(parentId) {
 
 
 
+function toHljsClass(s) {
+    if (s === "html/xml") {
+        return "xml";
+    }
+    return s;
+}
+
+
 document.addEventListener("DOMContentLoaded", function() {
     var editor = document.getElementById("editor");         // editor container
     var save   = document.getElementById("save-paste");     // save-paste button/element
@@ -95,6 +103,7 @@ document.addEventListener("DOMContentLoaded", function() {
     var gutter = document.getElementById("gutter");         // line-num gutter
     var pasteText = document.getElementById("paste-text");  // hidden input holding paste content on-load
     var pasteType = document.getElementById("paste-type");
+    var typeSelector = document.getElementById("type-selector");
     var pasteId = document.getElementById("paste-id");
     var share = document.getElementById("share");
 
@@ -180,6 +189,17 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
 
+    editor.addEventListener('input', function(e){
+        //editor.innerHTML = editor.innerText;
+        var brs = editor.querySelectorAll('br');
+        if (brs.length > 0) {
+            for (var i = 0; i < brs.length; i++) {
+                editor.removeChild(brs[i]);
+            }
+            handleInput(null, editor);
+        }
+    });
+
     /** Save content
      * - When the save button is present (which it should always be, might just be hidden),
      *   add a click listener to post current content and redirect to a viewable link
@@ -188,9 +208,11 @@ document.addEventListener("DOMContentLoaded", function() {
         save.addEventListener("click", function(){
             var editor = document.getElementById("editor");
             var content = editor.innerText;
+            var contentType = typeSelector.value;
+            if (!contentType) { contentType = "text" }
 
             var http = new XMLHttpRequest();
-            var url  = "/new";
+            var url  = "/new?type="+contentType;
             http.open("POST", url, true);
             http.setRequestHeader("Content-Type", "text/plain");
             http.onreadystatechange = function() {
@@ -219,9 +241,14 @@ document.addEventListener("DOMContentLoaded", function() {
             edit.style.cssText = "display: none;";
             save.style.cssText = "";
             var key = document.getElementById("paste-id");
-            key.innerText = "Hit 'Save' when you're finished!";
+            //key.innerText = "Hit 'Save' when you're finished!";
+            key.innerText = '';
             editor.setAttribute('contenteditable', true);
             editor.innerText = editor.innerText;
+
+            typeSelector.style.cssText = "";
+            typeSelector.value = pasteType.value;
+            share.style.cssText = "display: none;";
         });
     }
 
@@ -243,6 +270,8 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
 
-
-    hljs.highlightBlock(editor);
+    if (pasteType) {
+        editor.classList.add(toHljsClass(pasteType.value));
+        hljs.highlightBlock(editor);
+    }
 });

@@ -1,6 +1,6 @@
 body {
     font-family: monospace;
-    padding: 5px 0px;
+    padding: 1% 0px;
     background-color: #1d1f21;
     color: #efdea9;
 }
@@ -11,7 +11,7 @@ body {
     display: table;
     width: 100%;
     margin-bottom: 10px;
-    padding-bottom: 7px;
+    padding-bottom: 10px;
     border-style: solid;
     border-width: 0px 0px 1px 0px;
     border-color: #8d8d8d;
@@ -29,7 +29,7 @@ body {
 #header-title {
     cursor: pointer;
     font-weight: bold;
-    font-size: 24px;
+    font-size: 200%;
 }
 /* header right side content */
 #header-extra {
@@ -44,7 +44,7 @@ body {
     width: 100%;
     height: 100%;
     resize: none;
-    font-size: 11px;
+    font-size: 90%;
 }
 /* editor subgroup including gutter */
 #editor-row {
@@ -53,10 +53,10 @@ body {
 /* line number gutter */
 #gutter {
     display: table-cell;
-    min-width: 40px;
-    width: 40px;
-    text-align: right;
+    min-width: 45px;
+    width: 5%;
     padding-right: 5px;
+    text-align: right;
     color: #8d8d8d;
     border-style: solid;
     border-width: 0px 0.5px 0px 0px;
@@ -78,6 +78,13 @@ body {
 }
 
 
+#type-selector {
+    -webkit-border-radius: 5px;
+    -moz-border-radius: 5px;
+    border-radius: 5px;
+}
+
+
 .clickable {
     cursor: pointer;
 }
@@ -95,5 +102,5 @@ body {
 }
 
 .tiny {
-    font-size: 12px;
+    font-size: 100%;
 }
