@@ -11,6 +11,7 @@ location /.well-known/acme-challenge {
 
 git clone https://github.com/certbot/certbot
 
+# from within the certbot proj dir
 ./letsencrypt-auto certonly --webroot --webroot-path /<PATH_TO_PROJ_BASE>/static/acme_challenge --email [EMAIL] -d [DOMAIN]
 
 ./letencrypt-auto renew
