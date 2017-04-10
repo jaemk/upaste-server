@@ -3,3 +3,4 @@ highlight
 .env
 .migrant
 upaste.conf
+static/acme_challenge
