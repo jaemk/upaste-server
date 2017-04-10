@@ -7,7 +7,7 @@
 # Setup
 
 * install [rust](https://rustup.rs/)
-* install `diesel_cli`: `cargo diesel_cli --no-default-features --features postgres`
+* install `diesel_cli`: `cargo install diesel_cli --no-default-features --features postgres`
 * create your postgres database and user
 * copy `.env.sample` to `.env` and update to your database url/user/pass
 * build a release artifact, `cargo build --release`
