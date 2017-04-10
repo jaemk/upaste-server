@@ -1,0 +1,15 @@
+description "upaste app server"
+
+
+# `initctl reload-configuration` to pull in new configs in /etc/init/
+# may need to install `upstart` and `upstart-sysv` and reboot!
+# place in /etc/init/ , then we can call sudo service upaste start/stop
+start on runlevel [2345]
+stop on runlevel [!2345]
+
+respawn
+setuid <USER>
+setgid www-data
+chdir <PATH_TO_PROJ_DIR>
+
+exec <PATH_TO_EXEC> serve --port <PORT> --db-url <DB_CONN_URL>
