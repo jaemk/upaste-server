@@ -13,6 +13,10 @@ pub fn main() {
         .about("uPaste Server")
         .subcommand(SubCommand::with_name("serve")
                     .about("Initialize Server")
+                    .arg(Arg::with_name("database")
+                         .long("db-url")
+                         .takes_value(true)
+                         .help("Postgres database URL to connect to"))
                     .arg(Arg::with_name("port")
                          .long("port")
                          .short("p")
@@ -52,8 +56,9 @@ fn run(matches: ArgMatches) -> Result<()> {
     if let Some(serve_matches) = matches.subcommand_matches("serve") {
         let port = serve_matches.value_of("port").unwrap_or("3000");
         let host = format!("localhost:{}", port);
-        let do_log = !matches.is_present("silent");
-        service::start(&host, do_log);
+        let do_log = !serve_matches.is_present("silent");
+        let db_url = serve_matches.value_of("database");
+        service::start(&host, db_url, do_log);
         return Ok(());
     }
 

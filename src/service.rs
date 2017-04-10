@@ -65,22 +65,27 @@ impl BeforeMiddleware for InfoLog {
 //}
 
 
-fn establish_connection_pool() -> PgPool {
-    dotenv().ok();
-    let db_url = env::var("DATABASE_URL")
-        .expect("DATABASE_URL must be set.");
+fn establish_connection_pool(database_url: Option<&str>) -> PgPool {
+    let db_url = match database_url {
+        Some(url) => url.into(),
+        None => {
+            dotenv().ok();
+            env::var("DATABASE_URL")
+                .expect("DATABASE_URL must be set.")
+        },
+    };
     let config = Config::default();
     let manager = ConnectionManager::<PgConnection>::new(db_url);
     Pool::new(config, manager).expect("Failed to create pool.")
 }
 
 
-pub fn start(host: &str, log: bool) {
+pub fn start(host: &str, db: Option<&str>, log: bool) {
     // get default host
     let host = if host.is_empty() { "localhost:3000" } else { host };
 
     // connect to our db
-    let db_pool = establish_connection_pool();
+    let db_pool = establish_connection_pool(db);
     println!(" ** Established database connection pool **");
 
     // compile our template and initialize template engine
