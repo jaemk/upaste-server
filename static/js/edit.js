@@ -88,6 +88,14 @@ function getCurrentCursorPosition(parentId) {
 
 
 
+/**
+ * toHljsClass
+ * - handle exceptions where list value differs from class name
+ *   that hljs expects
+ *
+ * @param {string} s - paste_type
+ * @returns {string} - hljs class
+ */
 function toHljsClass(s) {
     if (s === "html/xml") {
         return "xml";
@@ -189,8 +197,12 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
 
+    /** Handle trailing <br>'s that get randomly inserted.
+     *  - These appear when backspacing over multiple lines.
+     *    If a tab is inserted when the cursor is on the <br>,
+     *    the tab-spaces are inserted at a random location.
+     */
     editor.addEventListener('input', function(e){
-        //editor.innerHTML = editor.innerText;
         var brs = editor.querySelectorAll('br');
         if (brs.length > 0) {
             for (var i = 0; i < brs.length; i++) {
@@ -199,6 +211,7 @@ document.addEventListener("DOMContentLoaded", function() {
             handleInput(null, editor);
         }
     });
+
 
     /** Save content
      * - When the save button is present (which it should always be, might just be hidden),
@@ -241,7 +254,6 @@ document.addEventListener("DOMContentLoaded", function() {
             edit.style.cssText = "display: none;";
             save.style.cssText = "";
             var key = document.getElementById("paste-id");
-            //key.innerText = "Hit 'Save' when you're finished!";
             key.innerText = '';
             editor.setAttribute('contenteditable', true);
             editor.innerText = editor.innerText;
