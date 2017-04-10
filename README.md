@@ -11,7 +11,7 @@
 * create your postgres database and user
 * copy `.env.sample` to `.env` and update to your database url/user/pass
 * build a release artifact, `cargo build --release`
-* copy `upaste.conf.sample` to `/etc/init/upaste.conf` and update to your user/proj-dir, `sudo initctl reload-configuration` (see comments for more info)
-* copy `nginx.conf.sample` to `/etc/nginx/sites-available`, update project info, `sudo nginx -t` to check config
+* copy `upaste.conf.sample` to `/etc/init/upaste.conf` and update it with your user/proj-dir info. Load changes, `sudo initctl reload-configuration` (see comments for more info).
+* copy `nginx.conf.sample` to `/etc/nginx/sites-available`, update with your project info, `sudo nginx -t` to check config
 * setup https certs, see `letsencrypt.info`
 * run! `sudo service upaste start` and `sudo service nginx restart`
