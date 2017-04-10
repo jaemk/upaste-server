@@ -19,6 +19,13 @@ use service::{DB, TERA};
 use errors::*;
 
 
+lazy_static! {
+    static ref CONTENT_TYPES: Vec<String> = {
+        models::Paste::content_types()
+    };
+}
+
+
 /// Macro to pull a pooled db connection out a request typemap
 macro_rules! get_dbconn {
     ($request:expr) => {
@@ -53,12 +60,22 @@ fn gen_key(n_chars: usize) -> String {
 
 /// Endpoint for creating a new paste record
 pub fn new_paste(req: &mut Request) -> IronResult<Response> {
+    use params::{Params, Value};
     use schema::pastes;
     use schema::pastes::dsl::*;
     let conn = get_dbconn!(req);
 
     let mut paste_content = String::new();
     let _ = req.body.read_to_string(&mut paste_content);
+
+    let paste_type = match req.get_ref::<Params>() {
+        Ok(map) => match map.find(&["type"]) {
+            Some(&Value::String(ref name)) => Some(name.to_string()),
+            _ => None,
+        },
+        _ => None,
+    };
+    let paste_type = paste_type.unwrap_or("text".to_string());
 
     // create a new paste.key, making sure it isn't already in use
     let mut n_chars = 8;
@@ -68,7 +85,7 @@ pub fn new_paste(req: &mut Request) -> IronResult<Response> {
         new_key = gen_key(n_chars);
     }
 
-    let new_paste = models::NewPaste { key: new_key, content: &paste_content};
+    let new_paste = models::NewPaste { key: new_key, content: &paste_content, content_type: &paste_type};
     let new_paste = diesel::insert(&new_paste).into(pastes::table).get_result::<models::Paste>(&*conn);
     let new_paste = match new_paste {
         Ok(p) => p,
@@ -117,6 +134,7 @@ pub fn view_paste(req: &mut Request) -> IronResult<Response> {
     context.add("paste_key", &paste.key);
     context.add("content", &paste.content);
     context.add("content_type", &paste.content_type);
+    context.add("content_types", &*CONTENT_TYPES);
     let content = templates.render("core/edit.html", &context).unwrap();
     let content_type = mime!(Text/Html);
     Ok(Response::with((content_type, status::Ok, content)))
@@ -126,7 +144,8 @@ pub fn view_paste(req: &mut Request) -> IronResult<Response> {
 /// Endpoint for returning landing page
 pub fn home(req: &mut Request) -> IronResult<Response> {
     let templates = get_templates!(req);
-    let context = Context::new();
+    let mut context = Context::new();
+    context.add("content_types", &*CONTENT_TYPES);
     let content = templates.render("core/edit.html", &context).unwrap();
     let content_type = mime!(Text/Html);
     Ok(Response::with((content_type, status::Ok, content)))

@@ -7,6 +7,7 @@ authors = ["James Kominick <james.kominick@gmail.com>"]
 clap = "2.21"
 dotenv = "0.8"
 error-chain = "0.9"
+lazy_static = "0.2"
 
 rand = "0.3"
 uuid = { version = "0.4", features = ["v4", "serde"] }
@@ -34,3 +35,4 @@ staticfile = "*"
 mount = "*"
 
 mime = "0.2.3"
+params = "0.6"

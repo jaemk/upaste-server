@@ -7,6 +7,7 @@ use chrono::{DateTime, UTC};
 pub struct NewPaste<'a> {
     pub key: String,
     pub content: &'a str,
+    pub content_type: &'a str,
 }
 
 
@@ -23,37 +24,37 @@ impl Paste {
     pub fn content_types() -> Vec<String> {
         [
             "text",
-            "apache",
-            "css",
-            "http",
+            "python",
+            "rust",
             "javascript",
-            "ruby",
+            "json",
             "bash",
+            "perl",
+            "clojure",
+            "java",
+            "css",
+            "html/xml",
+            "markdown",
+            "ruby",
+            "django",
             "ini",
             "diff",
-            "json",
             "sql",
-            "markdown",
-            "perl",
             "c++",
-            "html",  // and xml?
-            "java",
+            "apache",
             "nginx",
-            "python",
-            "clojure",
             "ocaml",
             "scala",
-            "vim",  // or vim-script?
+            "vim",
             "go",
             "haskell",
             "swift",
             "elixer",
-            "django",
             "dockerfile",
             "elm",
             "lisp",
-            "rust",
             "yaml",
+            "http",
         ].iter()
          .map(|s| s.to_string())
          .collect::<Vec<_>>()

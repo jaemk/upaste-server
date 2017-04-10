@@ -5,6 +5,7 @@ extern crate uuid;
 extern crate chrono;
 extern crate rand;
 
+#[macro_use] extern crate lazy_static;
 #[macro_use] extern crate diesel;
 #[macro_use] extern crate diesel_codegen;
 extern crate r2d2;
@@ -15,6 +16,7 @@ extern crate serde;
 
 #[macro_use] extern crate tera;
 #[macro_use] extern crate mime;
+extern crate params;
 
 // iron things
 extern crate iron;
