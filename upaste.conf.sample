@@ -12,4 +12,4 @@ setuid <USER>
 setgid www-data
 chdir <PATH_TO_PROJ_DIR>
 
-exec <PATH_TO_EXEC> serve --port <PORT> --db-url <DB_CONN_URL>
+exec <PATH_TO_EXEC>/upaste serve --port <PORT> --db-url postgres://<DB_USER>:<DB_PASS>@localhost/<DB_NAME>
