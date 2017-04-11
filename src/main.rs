@@ -2,6 +2,7 @@ extern crate upaste_server;
 #[macro_use] extern crate clap;
 
 use upaste_server::service;
+use upaste_server::admin;
 use upaste_server::errors::*;
 
 use clap::{Arg, App, SubCommand, ArgMatches};
@@ -28,11 +29,12 @@ pub fn main() {
                     .arg(Arg::with_name("silent")
                          .long("silent")
                          .help("Don't output any logging info")))
-        .subcommand(SubCommand::with_name("cli")
-                    .about("CLI functions")
+        .subcommand(SubCommand::with_name("admin")
+                    .about("admin functions")
                     .arg(Arg::with_name("clean")
-                         .long("clean-stale")
-                         .help("Clean out stale pastes")))
+                         .long("clean-before")
+                         .takes_value(true)
+                         .help("Clean out stale pastes before given date (yyyy-mm-dd), or default to 30 days ago")))
         .get_matches();
 
     if let Err(ref e) = run(matches) {
@@ -66,11 +68,8 @@ fn run(matches: ArgMatches) -> Result<()> {
         return Ok(());
     }
 
-    if let Some(cli_matches) = matches.subcommand_matches("cli") {
-        if cli_matches.is_present("clean") {
-            println!("Cleaning!");
-            unimplemented!();
-        }
+    if let Some(admin_matches) = matches.subcommand_matches("admin") {
+        return admin::handle(admin_matches)
     }
 
     Ok(())

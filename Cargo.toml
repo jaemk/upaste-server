@@ -3,6 +3,11 @@ name = "upaste-server"
 version = "0.1.0"
 authors = ["James Kominick <james.kominick@gmail.com>"]
 
+[[bin]]
+name = "upaste"
+path = "src/main.rs"
+doc = false
+
 [dependencies]
 clap = "2.21"
 dotenv = "0.8"
@@ -12,6 +17,7 @@ lazy_static = "0.2"
 rand = "0.3"
 uuid = { version = "0.4", features = ["v4", "serde"] }
 chrono = { version = "0.3", features = ["serde"] }
+time = "0.1"
 
 tera = "0.8"
 

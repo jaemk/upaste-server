@@ -3,7 +3,9 @@
 extern crate dotenv;
 extern crate uuid;
 extern crate chrono;
+extern crate time;
 extern crate rand;
+extern crate clap;
 
 #[macro_use] extern crate lazy_static;
 #[macro_use] extern crate diesel;
@@ -42,4 +44,5 @@ pub mod models;
 pub mod service;
 pub mod routes;
 pub mod handlers;
+pub mod admin;
 

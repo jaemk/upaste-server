@@ -56,13 +56,19 @@ impl BeforeMiddleware for InfoLog {
 }
 
 
-//fn establish_connection() -> PgConnection {
-//    dotenv().ok();
-//    let db_url = env::var("DATABASE_URL")
-//        .expect("DATABASE_URL must be set.");
-//    PgConnection::establish(&db_url)
-//        .expect(&format!("Error connection to {}.", db_url))
-//}
+pub fn establish_connection(database_url: Option<&str>) -> PgConnection {
+    use diesel::Connection;
+    let db_url = match database_url {
+        Some(url) => url.into(),
+        None => {
+            dotenv().ok();
+            env::var("DATABASE_URL")
+                .expect("DATABASE_URL must be set.")
+        },
+    };
+    PgConnection::establish(&db_url)
+        .expect(&format!("Error connection to {}.", db_url))
+}
 
 
 fn establish_connection_pool(database_url: Option<&str>) -> PgPool {
