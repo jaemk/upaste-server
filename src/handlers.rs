@@ -10,6 +10,7 @@ use diesel::prelude::*;
 
 use iron::prelude::*;
 use iron::{status};
+use iron::modifiers;
 use router::Router;
 use persistent::{Read as PerRead, Write};
 use tera::Context;
@@ -126,7 +127,11 @@ pub fn view_paste_raw(req: &mut Request) -> IronResult<Response> {
 
 /// Endpoint for returning formatted paste content
 pub fn view_paste(req: &mut Request) -> IronResult<Response> {
-    let paste = get_paste(req).unwrap();
+    let paste = match get_paste(req) {
+        Ok(p) => p,
+        _ => return Ok(Response::with((status::Found,
+                                       modifiers::Redirect(url_for!(req, "home"))))),
+    };
 
     let arc = req.get::<PerRead<TERA>>().unwrap();
     let templates = arc.as_ref();

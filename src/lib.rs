@@ -20,7 +20,7 @@ extern crate params;
 
 // iron things
 extern crate iron;
-extern crate router;
+#[macro_use] extern crate router;
 extern crate logger;
 extern crate persistent;
 extern crate staticfile;
