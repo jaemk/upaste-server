@@ -15,3 +15,4 @@
 * copy `nginx.conf.sample` to `/etc/nginx/sites-available`, update with your project info, `sudo nginx -t` to check config
 * setup https certs, see `letsencrypt.info`
 * run! `sudo service upaste start` and `sudo service nginx restart`
+* clean out stale posts `upaste admin --clean-before-days 30 --no-confirm`
