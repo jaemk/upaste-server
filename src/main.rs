@@ -31,10 +31,18 @@ pub fn main() {
                          .help("Don't output any logging info")))
         .subcommand(SubCommand::with_name("admin")
                     .about("admin functions")
-                    .arg(Arg::with_name("clean")
-                         .long("clean-before")
+                    .arg(Arg::with_name("clean-before-date")
+                         .long("clean-before-date")
                          .takes_value(true)
-                         .help("Clean out stale pastes before given date (yyyy-mm-dd), or default to 30 days ago")))
+                         .help("Clean out stale pastes before a given date (yyyy-mm-dd)"))
+                    .arg(Arg::with_name("clean-before-days")
+                         .long("clean-before-days")
+                         .takes_value(true)
+                         .help("Clean out stale pastes before a number of days prior to now ([0-9])"))
+                    .arg(Arg::with_name("no-confirm")
+                         .long("no-confirm")
+                         .takes_value(false)
+                         .help("Auto-confirm/skip any confirmation checks")))
         .get_matches();
 
     if let Err(ref e) = run(matches) {
