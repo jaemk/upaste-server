@@ -230,8 +230,7 @@ document.addEventListener("DOMContentLoaded", function() {
             http.setRequestHeader("Content-Type", "text/plain");
             http.onreadystatechange = function() {
                 if (http.readyState !== XMLHttpRequest.DONE || http.status !== 200) { return; }
-                var respText = http.responseText;
-                var resp = JSON.parse(respText);
+                var resp = JSON.parse(http.responseText);
                 if (resp.key) {
                     window.location.href = "/"+resp.key;
                 }
