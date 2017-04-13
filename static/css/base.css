@@ -1,8 +1,11 @@
 body {
-    font-family: monospace;
+    font-family: 'Ubuntu Mono', monospace;
     padding: 1% 0px;
     background-color: #1d1f21;
     color: #efdea9;
+}
+code {
+    font-family: 'Ubuntu Mono', monospace;
 }
 
 
@@ -44,7 +47,7 @@ body {
     width: 100%;
     height: 100%;
     resize: none;
-    font-size: 90%;
+    font-size: 80%;
 }
 /* editor subgroup including gutter */
 #editor-row {
