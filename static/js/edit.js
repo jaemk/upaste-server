@@ -201,12 +201,16 @@ document.addEventListener("DOMContentLoaded", function() {
      *  - These appear when backspacing over multiple lines.
      *    If a tab is inserted when the cursor is on the <br>,
      *    the tab-spaces are inserted at a random location.
+     *  - replacing trailing breaks with new-lines and make sure
+     *    the cursor stays at the end of the text.
      */
     editor.addEventListener('input', function(e){
         var brs = editor.querySelectorAll('br');
         if (brs.length > 0) {
             for (var i = 0; i < brs.length; i++) {
                 editor.removeChild(brs[i]);
+                editor.innerText += '\n';
+                setCurrentCursorPosition(editor, editor.innerText.length);
             }
             handleInput(null, editor);
         }
