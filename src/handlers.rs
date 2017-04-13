@@ -121,7 +121,7 @@ fn get_paste(req: &mut Request) -> Result<models::Paste> {
 /// Endpoint for returning raw paste content
 pub fn view_paste_raw(req: &mut Request) -> IronResult<Response> {
     let paste = get_paste(req).unwrap();
-    Ok(Response::with((status::Ok, paste.content)))
+    Ok(Response::with((mime!(Text/Plain), status::Ok, paste.content)))
 }
 
 

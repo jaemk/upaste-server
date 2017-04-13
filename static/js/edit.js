@@ -220,7 +220,7 @@ document.addEventListener("DOMContentLoaded", function() {
     if (save) {
         save.addEventListener("click", function(){
             var editor = document.getElementById("editor");
-            var content = editor.innerText;
+            var content = editor.innerText.replace(/\u00a0/g, " ");
             var contentType = typeSelector.value;
             if (!contentType) { contentType = "text" }
 
@@ -229,8 +229,12 @@ document.addEventListener("DOMContentLoaded", function() {
             http.open("POST", url, true);
             http.setRequestHeader("Content-Type", "text/plain");
             http.onreadystatechange = function() {
-                var resp = JSON.parse(http.responseText);
-                if (resp.key) { window.location.href = "/"+resp.key; }
+                if (http.readyState !== XMLHttpRequest.DONE || http.status !== 200) { return; }
+                var respText = http.responseText;
+                var resp = JSON.parse(respText);
+                if (resp.key) {
+                    window.location.href = "/"+resp.key;
+                }
                 else {
                     alert("Error posting paste.");
                 }
