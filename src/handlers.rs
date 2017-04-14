@@ -76,7 +76,7 @@ pub fn new_paste(req: &mut Request) -> IronResult<Response> {
         },
         _ => None,
     };
-    let paste_type = paste_type.unwrap_or("text".to_string());
+    let paste_type = paste_type.unwrap_or("auto".to_string());
 
     // create a new paste.key, making sure it isn't already in use
     let mut n_chars = 8;

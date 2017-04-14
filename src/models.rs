@@ -23,6 +23,7 @@ pub struct Paste {
 impl Paste {
     pub fn content_types() -> Vec<String> {
         [
+            "auto",
             "text",
             "python",
             "rust",

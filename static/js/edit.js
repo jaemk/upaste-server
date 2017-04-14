@@ -97,9 +97,8 @@ function getCurrentCursorPosition(parentId) {
  * @returns {string} - hljs class
  */
 function toHljsClass(s) {
-    if (s === "html/xml") {
-        return "xml";
-    }
+    if (s === "html/xml") { return "xml"; }
+    if (s === "auto") { return null; }
     return s;
 }
 
@@ -290,7 +289,10 @@ document.addEventListener("DOMContentLoaded", function() {
     }
 
     if (pasteType) {
-        editor.classList.add(toHljsClass(pasteType.value));
+        var hljsClass = toHljsClass(pasteType.value);
+        if (hljsClass) {
+            editor.classList.add(hljsClass);
+        }
         hljs.highlightBlock(editor);
     }
 });
