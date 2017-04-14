@@ -8,6 +8,8 @@ use rand::{self, Rng};
 use diesel;
 use diesel::prelude::*;
 
+use serde_json;
+
 use iron::prelude::*;
 use iron::{status};
 use iron::modifiers;
@@ -47,6 +49,13 @@ macro_rules! get_templates {
             arc.clone()
         }
     }
+}
+
+
+#[derive(Serialize)]
+struct NewPasteResponse<'a> {
+    message: &'a str,
+    key: &'a str,
 }
 
 
@@ -93,11 +102,12 @@ pub fn new_paste(req: &mut Request) -> IronResult<Response> {
         _ => return Ok(Response::with((status::InternalServerError, "Error creating post"))),
     };
 
-    let resp = json!({
-        "message": "success!",
-        "key": &new_paste.key,
-    });
-    Ok(Response::with((status::Ok, resp.to_string())))
+    let resp = NewPasteResponse { message: "success!", key: &new_paste.key };
+    let resp = match serde_json::to_string(&resp) {
+        Ok(s) => s,
+        _ => return Ok(Response::with((status::InternalServerError, "Error serializing response"))),
+    };
+    Ok(Response::with((status::Ok, resp)))
 }
 
 

@@ -14,7 +14,8 @@ extern crate r2d2;
 extern crate r2d2_diesel;
 
 extern crate serde;
-#[macro_use] extern crate serde_json;
+#[macro_use] extern crate serde_derive;
+extern crate serde_json;
 
 #[macro_use] extern crate tera;
 #[macro_use] extern crate mime;
