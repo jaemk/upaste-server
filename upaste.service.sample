@@ -1,0 +1,19 @@
+# systemd config
+# copy to /etc/systemd/system/upaste.service
+#
+# systemctl enable upaste.service
+# systemctl start upaste
+# systemctl status upaste.service
+# systemctl daemon-reload
+# # tail the log
+# journalctl -f -u upaste
+[Unit]
+Description=uPaste App Server
+Requires=After=postgresql.service
+
+[Service]
+WorkingDirectory=/<PATH_TO_PROJ_DIR>/upaste-server
+ExecStart=/<PATH_TO_EXEC>/upaste serve --port <PORT> --db-url postgres://<DB_USER>:<DB_PASS>@localhost/<DB_NAME>
+
+[Install]
+WantedBy=multi-user.target

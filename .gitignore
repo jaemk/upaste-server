@@ -4,3 +4,4 @@ highlight_full
 .migrant
 upaste.conf
 static/acme_challenge
+.migrant.toml
