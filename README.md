@@ -2,6 +2,8 @@
 
 > Small uPaste server inspired by hastebin
 
+Also see the general pasting client, [upaste](https://github.com/jaemk/upaste)
+
 > wip
 
 # Setup
