@@ -13,16 +13,18 @@ server {
     listen 80;
     server_name <DO.MA.IN>;
 
-    # Redirect all HTTP requests to HTTPS with a 301 Moved Permanently response
-    # * make sure to setup your cert first
-    #
-    # return 301 https://$host$request_uri;
-
     # webroot location for letsencrypt
     location /.well-known/acme-challenge {
         default_type "text/plain";
         root /<PATH_TO_PROJ_BASE>/static/acme_challenge/;
     }
+
+    # Redirect all HTTP requests to HTTPS with a 301 Moved Permanently response
+    # * make sure to setup your cert first
+    #
+    # location / {
+    #     return 301 https://$host$request_uri;
+    # }
 
     # or serve over http:
     #
