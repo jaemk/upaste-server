@@ -10,6 +10,7 @@
 [Unit]
 Description=uPaste App Server
 Requires=After=postgresql.service
+Requires=After=nginx.service
 
 [Service]
 WorkingDirectory=/<PATH_TO_PROJ_DIR>/upaste-server
