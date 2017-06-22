@@ -1,14 +1,18 @@
-language: rust
-rust: stable
 sudo: false
+language: rust
 dist: trusty
 
-install:
-    - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
-    - cargo install diesel_cli --debug --no-default-features --features postgres && export PATH=$HOME/.cargo/bin:$PATH
+rust:
+    - nightly
+    - beta
+    - stable
 
-before_script:
-    - diesel database setup
+#install:
+#    - pip install 'travis-cargo<0.2' --user && export PATH=$HOME/.local/bin:$PATH
+#    - cargo install diesel_cli --debug --no-default-features --features postgres && export PATH=$HOME/.cargo/bin:$PATH
+
+#before_script:
+#    - diesel database setup
 
 script:
     - cargo build
