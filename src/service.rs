@@ -9,9 +9,10 @@ use std::path::Path;
 use dotenv::dotenv;
 use env_logger;
 
-use diesel::pg::PgConnection;
+use postgres::{self, Connection};
+use r2d2_postgres::{self, PostgresConnectionManager};
+
 use r2d2::{Config, Pool};
-use r2d2_diesel::ConnectionManager;
 
 use tera::Tera;
 
@@ -28,7 +29,7 @@ use routes;
 
 
 /// Wrapped r2d2_pool/diesel-connection
-type PgPool = Pool<ConnectionManager<PgConnection>>;
+type PgPool = Pool<PostgresConnectionManager>;
 
 
 #[derive(Copy, Clone)]
@@ -56,8 +57,7 @@ impl BeforeMiddleware for InfoLog {
 }
 
 
-pub fn establish_connection(database_url: Option<&str>) -> PgConnection {
-    use diesel::Connection;
+pub fn establish_connection(database_url: Option<&str>) -> Connection {
     let db_url = match database_url {
         Some(url) => url.into(),
         None => {
@@ -66,7 +66,7 @@ pub fn establish_connection(database_url: Option<&str>) -> PgConnection {
                 .expect("DATABASE_URL must be set.")
         },
     };
-    PgConnection::establish(&db_url)
+    Connection::connect(db_url.clone(), postgres::TlsMode::None)
         .expect(&format!("Error connection to {}.", db_url))
 }
 
@@ -81,7 +81,8 @@ fn establish_connection_pool(database_url: Option<&str>) -> PgPool {
         },
     };
     let config = Config::default();
-    let manager = ConnectionManager::<PgConnection>::new(db_url);
+    let manager = PostgresConnectionManager::new(db_url, r2d2_postgres::TlsMode::None)
+        .expect("failed to open pooled connection");
     Pool::new(config, manager).expect("Failed to create pool.")
 }
 

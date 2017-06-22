@@ -1,5 +1,6 @@
 //! Crate imports
 //!
+#[macro_use] extern crate lazy_static;
 extern crate dotenv;
 extern crate uuid;
 extern crate chrono;
@@ -7,11 +8,11 @@ extern crate time;
 extern crate rand;
 extern crate clap;
 
-#[macro_use] extern crate lazy_static;
-#[macro_use] extern crate diesel;
-#[macro_use] extern crate diesel_codegen;
+
+extern crate postgres;
+extern crate r2d2_postgres;
+
 extern crate r2d2;
-extern crate r2d2_diesel;
 
 extern crate serde;
 #[macro_use] extern crate serde_derive;
@@ -31,18 +32,14 @@ extern crate mount;
 
 extern crate env_logger;
 
-#[macro_use] extern crate error_chain;
-pub mod errors {
-    error_chain! {
-        foreign_links {
-            Diesel(::diesel::result::Error);
-        }
-    }
-}
+extern crate migrant_lib;
 
-pub mod schema;
-pub mod models;
+
+#[macro_use] pub mod errors;
+#[macro_use] pub mod macros;
+
 pub mod service;
+pub mod models;
 pub mod routes;
 pub mod handlers;
 pub mod admin;

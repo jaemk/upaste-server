@@ -2,11 +2,7 @@
 //!  - Endpoint handlers
 //!
 use std::io::Read;
-use chrono::UTC;
 use rand::{self, Rng};
-
-use diesel;
-use diesel::prelude::*;
 
 use serde_json;
 
@@ -16,6 +12,7 @@ use iron::modifiers;
 use router::Router;
 use persistent::{Read as PerRead, Write};
 use tera::Context;
+use postgres::Connection;
 
 use models;
 use service::{DB, TERA};
@@ -61,18 +58,33 @@ struct NewPasteResponse<'a> {
 
 /// Generate a new random key
 fn gen_key(n_chars: usize) -> String {
+    use std::ascii::AsciiExt;
     rand::thread_rng()
         .gen_ascii_chars()
+        .filter(|c| match c.to_ascii_lowercase() {
+            'l' | '1' | 'i' | 'o' | '0' => false,
+            _ => true,
+        })
         .take(n_chars)
         .collect::<String>()
+}
+
+
+/// Create a new paste.key, making sure it isn't already in use
+fn get_new_key(conn: &Connection) -> Result<String> {
+    let mut n_chars = 5;
+    let mut new_key = gen_key(n_chars);
+    while models::Paste::exists(&conn, &new_key)? {
+        n_chars += 1;
+        new_key = gen_key(n_chars);
+    }
+    Ok(new_key)
 }
 
 
 /// Endpoint for creating a new paste record
 pub fn new_paste(req: &mut Request) -> IronResult<Response> {
     use params::{Params, Value};
-    use schema::pastes;
-    use schema::pastes::dsl::*;
     let conn = get_dbconn!(req);
 
     let mut paste_content = String::new();
@@ -85,45 +97,27 @@ pub fn new_paste(req: &mut Request) -> IronResult<Response> {
         },
         _ => None,
     };
-    let paste_type = paste_type.unwrap_or("auto".to_string());
+    let paste_type = paste_type.unwrap_or_else(|| "auto".to_string());
+    let new_key = try_server_error!(get_new_key(&conn), "Unable to create new key");
 
-    // create a new paste.key, making sure it isn't already in use
-    let mut n_chars = 8;
-    let mut new_key = gen_key(n_chars);
-    while pastes.filter(key.eq(&new_key)).first::<models::Paste>(&*conn).is_ok() {
-        n_chars += 1;
-        new_key = gen_key(n_chars);
-    }
-
-    let new_paste = models::NewPaste { key: new_key, content: &paste_content, content_type: &paste_type};
-    let new_paste = diesel::insert(&new_paste).into(pastes::table).get_result::<models::Paste>(&*conn);
-    let new_paste = match new_paste {
-        Ok(p) => p,
-        _ => return Ok(Response::with((status::InternalServerError, "Error creating post"))),
-    };
+    let new_paste = models::NewPaste { key: new_key, content: paste_content, content_type: paste_type};
+    let new_paste = new_paste.insert(&conn);
+    let new_paste = try_server_error!(new_paste, "Error creating post");
 
     let resp = NewPasteResponse { message: "success!", key: &new_paste.key };
-    let resp = match serde_json::to_string(&resp) {
-        Ok(s) => s,
-        _ => return Ok(Response::with((status::InternalServerError, "Error serializing response"))),
-    };
+    let resp = try_server_error!(serde_json::to_string(&resp), "Error serializing response");
     Ok(Response::with((status::Ok, resp)))
 }
 
 
 /// Helper for pulling out a paste
 fn get_paste(req: &mut Request) -> Result<models::Paste> {
-    use schema::pastes::dsl::*;
-    let req_key: String;
-    {
+    let req_key = {
         let ref k = req.extensions.get::<Router>().unwrap().find("key").unwrap();
-        req_key = k.to_string();
-    }
+        k.to_string()
+    };
     let conn = get_dbconn!(req);
-    let paste: models::Paste = diesel::update(pastes.filter(key.eq(&req_key)))
-        .set(date_viewed.eq(UTC::now()))
-        .get_result(&*conn)
-        .chain_err(|| "Paste not found")?;
+    let paste = models::Paste::touch_and_get(&req_key, &conn)?;
     Ok(paste)
 }
 

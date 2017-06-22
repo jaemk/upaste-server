@@ -10,7 +10,7 @@ doc = false
 
 [dependencies]
 clap = "2.21"
-dotenv = "0.8"
+dotenv = "0.10"
 error-chain = "0.9"
 lazy_static = "0.2"
 
@@ -21,15 +21,14 @@ time = "0.1"
 
 tera = "0.8"
 
-serde = "0.9"
-serde_derive = "0.9"
-serde_json = "0.9"
+serde = "1"
+serde_derive = "1"
+serde_json = "1"
 
-diesel = { version = "0.11", features = ["postgres", "chrono", "uuid"] }
-diesel_codegen = { version = "0.11", features = ["postgres"] }
+postgres = { version = "0.14", features = ["with-uuid", "with-serde_json", "with-chrono"] }
+r2d2_postgres = "0.12"
 
 r2d2 = "0.7"
-r2d2-diesel = "0.12"
 
 env_logger = "*"
 
@@ -42,3 +41,5 @@ mount = "*"
 
 mime = "0.2.3"
 params = "0.6"
+
+migrant_lib = { version = "0.8", default-features = false, features = ["postgresql"] }

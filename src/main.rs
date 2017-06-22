@@ -31,6 +31,10 @@ pub fn main() {
                          .help("Don't output any logging info")))
         .subcommand(SubCommand::with_name("admin")
                     .about("admin functions")
+                    .arg(Arg::with_name("migrate")
+                         .long("migrate")
+                         .takes_value(false)
+                         .help("Look for and apply any available un-applied migrations"))
                     .arg(Arg::with_name("clean-before-date")
                          .long("clean-before-date")
                          .takes_value(true)
@@ -49,16 +53,7 @@ pub fn main() {
         use ::std::io::Write;
         let stderr = &mut ::std::io::stderr();
         let stderr_msg = "Error writing to stderr";
-        writeln!(stderr, "error: {}", e).expect(stderr_msg);
-
-        for e in e.iter().skip(1) {
-            writeln!(stderr, "caused by: {}", e).expect(stderr_msg);
-        }
-
-        // `RUST_BACKTRACE=1`
-        if let Some(backtrace) = e.backtrace() {
-            writeln!(stderr, "backtrace: {:?}", backtrace).expect(stderr_msg);
-        }
+        writeln!(stderr, "[ERROR] {}", e).expect(stderr_msg);
 
         ::std::process::exit(1);
     }
