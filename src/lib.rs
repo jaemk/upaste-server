@@ -2,7 +2,6 @@
 //!
 #[macro_use] extern crate lazy_static;
 extern crate dotenv;
-extern crate uuid;
 extern crate chrono;
 extern crate time;
 extern crate rand;
