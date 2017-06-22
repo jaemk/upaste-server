@@ -232,7 +232,11 @@ document.addEventListener("DOMContentLoaded", function() {
             http.open("POST", url, true);
             http.setRequestHeader("Content-Type", "text/plain");
             http.onreadystatechange = function() {
-                if (http.readyState !== XMLHttpRequest.DONE || http.status !== 200) { return; }
+                if (http.readyState !== XMLHttpRequest.DONE) { return; }
+                if (http.status >= 500) {
+                    alert("Error posting paste.");
+                    return;
+                }
                 var resp = JSON.parse(http.responseText);
                 if (resp.key) {
                     window.location.href = "/"+resp.key;
