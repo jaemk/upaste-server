@@ -1,6 +1,7 @@
 extern crate upaste_server;
 #[macro_use] extern crate clap;
 
+use std::env;
 use upaste_server::service;
 use upaste_server::admin;
 use upaste_server::errors::*;
@@ -26,9 +27,9 @@ pub fn main() {
                     .arg(Arg::with_name("public")
                          .long("public")
                          .help("Serve on '0.0.0.0' instead of 'localhost'"))
-                    .arg(Arg::with_name("silent")
-                         .long("silent")
-                         .help("Don't output any logging info")))
+                    .arg(Arg::with_name("log")
+                         .long("log")
+                         .help("Output logging info. Shortcut for setting env-var LOG=info")))
         .subcommand(SubCommand::with_name("admin")
                     .about("admin functions")
                     .arg(Arg::with_name("migrate")
@@ -62,12 +63,15 @@ pub fn main() {
 
 fn run(matches: ArgMatches) -> Result<()> {
     if let Some(serve_matches) = matches.subcommand_matches("serve") {
+        if serve_matches.is_present("log") {
+            env::set_var("LOG", "info");
+        }
+
         let port = serve_matches.value_of("port").unwrap_or("3000");
         let host_base = if serve_matches.is_present("public") { "0.0.0.0" } else { "localhost" };
         let host = format!("{}:{}", host_base, port);
-        let do_log = !serve_matches.is_present("silent");
         let db_url = serve_matches.value_of("database");
-        service::start(&host, db_url, do_log);
+        service::start(&host, db_url);
         return Ok(());
     }
 

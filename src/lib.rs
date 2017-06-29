@@ -28,6 +28,7 @@ extern crate persistent;
 extern crate staticfile;
 extern crate mount;
 
+#[macro_use] extern crate log;
 extern crate env_logger;
 
 extern crate migrant_lib;

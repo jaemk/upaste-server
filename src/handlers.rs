@@ -108,11 +108,15 @@ pub fn new_paste(req: &mut Request) -> IronResult<Response> {
 /// Helper for pulling out a paste
 fn get_paste(req: &mut Request) -> Result<models::Paste> {
     let req_key = {
-        let ref k = req.extensions.get::<Router>().unwrap().find("key").unwrap();
+        let ref k = req.extensions.get::<Router>()
+            .expect("failed to extract router params")
+            .find("key")
+            .expect("`key` router param missing");
         k.to_string()
     };
     let conn = get_dbconn!(req);
-    let paste = models::Paste::touch_and_get(&req_key, &conn)?;
+    let paste = models::Paste::touch_and_get(&req_key, &conn)
+        .map_err(|e| format_err!("[key: {}]: {}", req_key, e))?;
     Ok(paste)
 }
 
@@ -128,8 +132,11 @@ pub fn view_paste_raw(req: &mut Request) -> IronResult<Response> {
 pub fn view_paste(req: &mut Request) -> IronResult<Response> {
     let paste = match get_paste(req) {
         Ok(p) => p,
-        _ => return Ok(Response::with((status::Found,
-                                       modifiers::Redirect(url_for!(req, "home"))))),
+        Err(e) => {
+            info!("Paste not found: {} -- Redirecting", e);
+            return Ok(Response::with(
+                    (status::Found, modifiers::Redirect(url_for!(req, "home")))))
+        }
     };
 
     let arc = req.get::<PerRead<TERA>>().unwrap();

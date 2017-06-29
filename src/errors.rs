@@ -8,6 +8,7 @@ pub type Result<T> = std::result::Result<T, Error>;
 pub enum Error {
     Msg(String),
     DoesNotExist(String),
+    MultipleRecords(String),
     Io(std::io::Error),
     Pg(postgres::error::Error),
     ParseInt(std::num::ParseIntError),
@@ -17,11 +18,12 @@ impl std::fmt::Display for Error {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         use self::Error::*;
         match *self {
-            Msg(ref s)          => write!(f, "Error: {}", s),
-            DoesNotExist(ref s) => write!(f, "DoesNotExist Error: {}", s),
-            Io(ref e)           => write!(f, "Io Error: {}", e),
-            Pg(ref e)           => write!(f, "Postgres Error: {}", e),
-            ParseInt(ref e)     => write!(f, "ParseInt Error: {}", e),
+            Msg(ref s)              => write!(f, "Error: {}", s),
+            DoesNotExist(ref s)     => write!(f, "DoesNotExist Error: {}", s),
+            MultipleRecords(ref s)  => write!(f, "MultipleRecords Error: {}", s),
+            Io(ref e)               => write!(f, "Io Error: {}", e),
+            Pg(ref e)               => write!(f, "Postgres Error: {}", e),
+            ParseInt(ref e)         => write!(f, "ParseInt Error: {}", e),
         }
     }
 }
@@ -94,6 +96,12 @@ macro_rules! bail {
     };
     (DoesNotExist; $literal:expr, $($arg:expr),*) => {
         return Err(format_err!(Error::DoesNotExist ; $literal, $($arg),*))
+    };
+    (MultipleRecords; $msg:expr) => {
+        return Err(format_err!(Error::MultipleRecords ; $msg))
+    };
+    (MultipleRecords; $literal:expr, $($arg:expr),*) => {
+        return Err(format_err!(Error::MultipleRecords ; $literal, $($arg),*))
     };
 }
 
