@@ -145,6 +145,8 @@ pub fn start(host: &str, db: Option<&str>) {
     // mount our chain of services and a static file handler
     let mut mount = Mount::new();
     mount.mount("/", chain)
+         .mount("/favicon.ico", Static::new(Path::new("static/favicon.ico")))
+         .mount("/robots.txt", Static::new(Path::new("static/robots.txt")))
          .mount("/static/", Static::new(Path::new("static")));
 
     info!(" ** Serving at {} **", host);
