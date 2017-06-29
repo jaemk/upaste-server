@@ -55,11 +55,17 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
             }
             Some(p) => {
                 let config = Config::load(&p).expect("failed to load config");
-                migrant_lib::Migrator::with_config(&config)
+                let  res = migrant_lib::Migrator::with_config(&config)
                     .direction(migrant_lib::Direction::Up)
                     .all(true)
-                    .apply()
-                    .expect("Failed to apply migrations");
+                    .apply();
+                if let Err(ref err) = res {
+                    if let migrant_lib::Error::MigrationComplete(_) = *err {
+                        println!("Database is up-to-date!");
+                        return Ok(());
+                    }
+                }
+                let _ = res?;
             }
         };
         return Ok(())

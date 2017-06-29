@@ -1,5 +1,6 @@
 use std;
 use postgres;
+use migrant_lib;
 
 
 pub type Result<T> = std::result::Result<T, Error>;
@@ -12,6 +13,7 @@ pub enum Error {
     Io(std::io::Error),
     Pg(postgres::error::Error),
     ParseInt(std::num::ParseIntError),
+    Migrant(migrant_lib::Error),
 }
 
 impl std::fmt::Display for Error {
@@ -24,6 +26,7 @@ impl std::fmt::Display for Error {
             Io(ref e)               => write!(f, "Io Error: {}", e),
             Pg(ref e)               => write!(f, "Postgres Error: {}", e),
             ParseInt(ref e)         => write!(f, "ParseInt Error: {}", e),
+            Migrant(ref e)          => write!(f, "Migrant Error: {}", e),
         }
     }
 }
@@ -36,8 +39,10 @@ impl std::error::Error for Error {
     fn cause(&self) -> Option<&std::error::Error> {
         use self::Error::*;
         Some(match *self {
-            Io(ref e) => e,
-            Pg(ref e) => e,
+            Io(ref e)       => e,
+            Pg(ref e)       => e,
+            ParseInt(ref e) => e,
+            Migrant(ref e)  => e,
             _ => return None
         })
     }
@@ -58,6 +63,12 @@ impl From<postgres::error::Error> for Error {
 impl From<std::num::ParseIntError> for Error {
     fn from(e: std::num::ParseIntError) -> Error {
         Error::ParseInt(e)
+    }
+}
+
+impl From<migrant_lib::Error> for Error {
+    fn from(e: migrant_lib::Error) -> Error {
+        Error::Migrant(e)
     }
 }
 
