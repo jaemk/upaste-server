@@ -19,8 +19,9 @@ use tera::Tera;
 
 use iron::prelude::*;
 use iron::typemap::Key;
-use iron::middleware::{BeforeMiddleware};
-use router::Router;
+use iron::middleware::AfterMiddleware;
+use iron::status;
+use router::{Router, NoRoute};
 use logger;
 use persistent::{Write, Read};
 use mount::Mount;
@@ -75,6 +76,26 @@ fn establish_connection_pool(database_url: Option<&str>) -> PgPool {
 }
 
 
+static ERROR_404: &'static str = r##"
+<html>
+    <pre>
+        Nothing to see here... <img src="https://badge-cache.kominick.com/badge/~(=^.^)-meow-yellow.svg?style=social"/>
+    </pre>
+</html>
+"##;
+
+/// Custom 404 Error handler/content
+struct Error404;
+impl AfterMiddleware for Error404 {
+    fn catch(&self, _req: &mut Request, e: IronError) -> IronResult<Response> {
+        if let Some(_) = e.error.downcast::<NoRoute>() {
+            return Ok(Response::with((status::NotFound, mime!(Text/Html), ERROR_404)))
+        }
+        Err(e)
+    }
+}
+
+
 pub fn start(host: &str, db: Option<&str>) {
     // get default host
     let host = if host.is_empty() { "localhost:3000" } else { host };
@@ -117,6 +138,7 @@ pub fn start(host: &str, db: Option<&str>) {
     let mut chain = Chain::new(router);
     chain.link_before(log_before);
     chain.link_after(log_after);
+    chain.link_after(Error404);
     chain.link(Write::<DB>::both(db_pool));
     chain.link(Read::<TERA>::both(tera));
 
