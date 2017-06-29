@@ -65,7 +65,38 @@ macro_rules! try_insert_to_model {
 /// Attempts to execute a `select`, taking the first row returned and
 /// converting it into the associated model type
 ///
-/// Returns an `Option` containing the given model
+/// Returns a `Result<Option<T>>` containing the given model
+///
+/// # Example
+///
+/// ```rust,ignore
+/// fn filter_first(key: &str, conn: &Connection) -> Result<Paste> {
+///     let stmt = "select * from pastes where key = $1";
+///     try_query_first!(conn.query(stmt, &[&key]), Paste)
+/// }
+/// ```
+macro_rules! try_query_first {
+    ($query:expr, $model:ident) => {
+        match $query {
+            Err(e) => {
+                Err(Error::from(e))
+            }
+            Ok(rows) => {
+                match rows.iter().next() {
+                    None => bail!(DoesNotExist; "No rows returned from table: {}", $model::table_name()),
+                    Some(row) => Ok($model::from_row(row)),
+                }
+            }
+        }
+    }
+}
+
+
+/// Attempts to execute a `select`, taking the first row returned and
+/// converting it into the associated model type. If more than one row
+/// is returned, returns an `Error::MultipleRecords`.
+///
+/// Returns a `Result<Option<T>>` containing the given model
 ///
 /// # Example
 ///
@@ -83,14 +114,20 @@ macro_rules! try_query_one {
                 Err(Error::from(e))
             }
             Ok(rows) => {
-                match rows.iter().next() {
+                let mut rows = rows.iter();
+                let record = match rows.next() {
                     None => bail!(DoesNotExist; "No rows returned from table: {}", $model::table_name()),
                     Some(row) => Ok($model::from_row(row)),
+                };
+                match rows.next() {
+                    None => record,
+                    Some(_) => bail!(MultipleRecords; "Multiple rows returned from table: {}, expected one", $model::table_name()),
                 }
             }
         }
     }
 }
+
 
 
 /// Attempts to execute some statement that returns a single row
