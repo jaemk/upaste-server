@@ -1,13 +1,12 @@
-<html>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<html lang="en">
     <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
         <link href="https://fonts.googleapis.com/css?family=Ubuntu+Mono&amp;subset=latin-ext" rel="stylesheet">
         <link rel="short icon" type="image/x-icon" href="/static/favicon.ico"/>
         <link rel="stylesheet" href="/static/css/base.css">
-
-        <link rel="stylesheet" href="/static/highlight/styles/tomorrow-night.css">
-        <script src="/static/highlight/highlight.pack.js"></script>
 
         <title> uPaste </title>
 
@@ -29,8 +28,9 @@
                 </div>
             </div>
         </div>
-
-        {% block content %}
-        {% endblock content %}
+        <div id="content">
+            {% block content %}
+            {% endblock content %}
+        </div>
     </body>
 </html>

@@ -1,6 +1,5 @@
 //! Crate imports
 //!
-#[macro_use] extern crate lazy_static;
 extern crate dotenv;
 extern crate chrono;
 extern crate time;

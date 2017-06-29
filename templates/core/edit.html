@@ -29,21 +29,8 @@
 
 
 {% block content %}
-<div>
-    <div id="editor-table">
-        <div id="editor-row">
-            <div id="gutter">
-            </div>
-            {% if content %}
-            <input id="tab-width" type="hidden" value="4">
-            <input id="paste-text" type="hidden" value="{{ content }}">
-            <input id="paste-type" type="hidden" value="{{ content_type }}">
-            <code id='editor' class="" contenteditable=false>
-            {% else %}
-            <code id='editor' class="" contenteditable=true>
-            {% endif %}
-            </code>
-        </div>
-    </div>
-</div>
+<input id="paste-type" value="{% if content_type %}{{ content_type }}{% endif %}"/>
+    <pre id="editor">{% if content %}{{ content }}{% endif %}</pre>
+
+    <script src="static/js/ace-editor/ace.js" type="text/javascript" charset="utf-8"></script>
 {% endblock content %}

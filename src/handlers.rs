@@ -15,15 +15,10 @@ use tera::Context;
 use postgres::Connection;
 
 use models;
+use models::CONTENT_TYPES;
 use service::{DB, TERA};
 use errors::*;
 
-
-lazy_static! {
-    static ref CONTENT_TYPES: Vec<String> = {
-        models::Paste::content_types()
-    };
-}
 
 
 /// Macro to pull a pooled db connection out a request typemap
@@ -143,7 +138,7 @@ pub fn view_paste(req: &mut Request) -> IronResult<Response> {
     context.add("paste_key", &paste.key);
     context.add("content", &paste.content);
     context.add("content_type", &paste.content_type);
-    context.add("content_types", &*CONTENT_TYPES);
+    context.add("content_types", &&CONTENT_TYPES[..]);
     let content = templates.render("core/edit.html", &context).unwrap();
     let content_type = mime!(Text/Html);
     Ok(Response::with((content_type, status::Ok, content)))
@@ -154,7 +149,7 @@ pub fn view_paste(req: &mut Request) -> IronResult<Response> {
 pub fn home(req: &mut Request) -> IronResult<Response> {
     let templates = get_templates!(req);
     let mut context = Context::new();
-    context.add("content_types", &*CONTENT_TYPES);
+    context.add("content_types", &&CONTENT_TYPES[..]);
     let content = templates.render("core/edit.html", &context).unwrap();
     let content_type = mime!(Text/Html);
     Ok(Response::with((content_type, status::Ok, content)))

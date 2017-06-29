@@ -1,11 +1,9 @@
 body {
     font-family: 'Ubuntu Mono', monospace;
     padding: 1% 0px;
-    background-color: #1d1f21;
+    background-color: #272727;
     color: #efdea9;
-}
-code {
-    font-family: 'Ubuntu Mono', monospace;
+    overflow: hidden;
 }
 
 
@@ -41,43 +39,14 @@ code {
 }
 
 
-/* editor group including gutter */
-#editor-table {
-    display: table;
-    width: 100%;
-    height: 100%;
-    resize: none;
-    font-size: 80%;
-}
-/* editor subgroup including gutter */
-#editor-row {
-    display: table-row;
-}
-/* line number gutter */
-#gutter {
-    display: table-cell;
-    min-width: 45px;
-    width: 5%;
-    padding-right: 5px;
-    text-align: right;
-    color: #8d8d8d;
-    border-style: solid;
-    border-width: 0px 0.5px 0px 0px;
-}
 /* main editor container */
 #editor {
-    padding-left: 5px;
-    display: table-cell;
-    overflow: auto;
-    resize: vertical;
-    word-wrap: normal;
-    overflow-wrap: normal;
-    white-space: pre-wrap;
-    min-height: 100px;
-}
-/* disable the focus outline */
-#editor:focus {
-    outline: 0px solid transparent;
+    margin: 0;
+    position: absolute;
+    top: 70;
+    left: 0;
+    right: 0;
+    bottom: 0;
 }
 
 
