@@ -45,19 +45,6 @@ pub struct TERA;
 impl Key for TERA { type Value = Tera; }
 
 
-/// Custom logger to print out access info
-pub struct InfoLog;
-impl BeforeMiddleware for InfoLog {
-    fn before(&self, req: &mut Request) -> IronResult<()> {
-        println!("[{:?}]: {}", req.method, req.url);
-        Ok(())
-    }
-    fn catch(&self, _: &mut Request, err: IronError) -> IronResult<()> {
-        Err(err)
-    }
-}
-
-
 pub fn establish_connection(database_url: Option<&str>) -> Connection {
     let db_url = match database_url {
         Some(url) => url.into(),
