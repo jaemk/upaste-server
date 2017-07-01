@@ -101,7 +101,7 @@ struct Error404;
 impl AfterMiddleware for Error404 {
     fn catch(&self, _req: &mut Request, e: IronError) -> IronResult<Response> {
         if let Some(_) = e.error.downcast::<NoRoute>() {
-            return Ok(Response::with((status::NotFound, mime!(Text/Html), ERROR_404)))
+            return Ok(Response::with((mime!(Text/Html), status::NotFound, ERROR_404)))
         }
         Err(e)
     }

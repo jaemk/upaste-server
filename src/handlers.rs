@@ -101,7 +101,7 @@ pub fn new_paste(req: &mut Request) -> IronResult<Response> {
 
     let resp = NewPasteResponse { message: "success!", key: &new_paste.key };
     let resp = try_server_error!(serde_json::to_string(&resp), "Error serializing response");
-    Ok(Response::with((status::Ok, resp)))
+    Ok(Response::with((mime!(Application/Json), status::Ok, resp)))
 }
 
 
