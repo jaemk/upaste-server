@@ -17,6 +17,7 @@ use r2d2::{Config, Pool};
 
 use tera::Tera;
 
+use migrant_lib;
 use iron::prelude::*;
 use iron::typemap::Key;
 use iron::middleware::AfterMiddleware;
@@ -46,13 +47,23 @@ pub struct TERA;
 impl Key for TERA { type Value = Tera; }
 
 
+fn migrant_connect_string() -> Option<String> {
+    let dir = env::current_dir()
+        .expect("failed to get current directory");
+    migrant_lib::search_for_config(&dir)
+        .and_then(|p| migrant_lib::Config::load(&p).ok())
+        .and_then(|config| config.connect_string().ok())
+}
+
+
 pub fn establish_connection(database_url: Option<&str>) -> Connection {
     let db_url = match database_url {
         Some(url) => url.into(),
         None => {
             dotenv().ok();
-            env::var("DATABASE_URL")
-                .expect("DATABASE_URL must be set.")
+            env::var("DATABASE_URL").ok()
+                .or_else(migrant_connect_string)
+                .expect("`--db_url` arg, DATABASE_URL env-var, or `.migrant.toml` config file must be set/available.")
         },
     };
     Connection::connect(db_url.clone(), postgres::TlsMode::None)
@@ -65,8 +76,9 @@ fn establish_connection_pool(database_url: Option<&str>) -> PgPool {
         Some(url) => url.into(),
         None => {
             dotenv().ok();
-            env::var("DATABASE_URL")
-                .expect("DATABASE_URL must be set.")
+            env::var("DATABASE_URL").ok()
+                .or_else(migrant_connect_string)
+                .expect("`--db_url` arg, DATABASE_URL env-var, or `.migrant.toml` config file must be set/available.")
         },
     };
     let config = Config::default();
