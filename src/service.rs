@@ -113,7 +113,7 @@ pub fn start(host: &str, db: Option<&str>) {
     let host = if host.is_empty() { "localhost:3000" } else { host };
 
     // Set a custom logging format & change the env-var to "LOG"
-    // e.g. LOG=info badge-cache serve
+    // e.g. LOG=info upaste serve
     env_logger::LogBuilder::new()
         .format(|record| {
             format!("{} [{}] - [{}] -> {}",
@@ -146,7 +146,7 @@ pub fn start(host: &str, db: Option<&str>) {
     // chain our router,
     // insert our mutable db_pool into request.typemap,
     // insert our template engine into request.typemap,
-    // link our loggers if we're logging
+    // link our request access loggers
     let mut chain = Chain::new(router);
     chain.link_before(log_before);
     chain.link_after(log_after);

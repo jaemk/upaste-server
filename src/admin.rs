@@ -28,8 +28,8 @@ fn confirm(msg: &str) -> Result<()> {
 
 
 /// Delete stale pastes that haven't been viewed prior to a given date.
-fn delete_pastes_before(date: DateTime<UTC>, no_confirm: bool) -> Result<()> {
-    let conn = service::establish_connection(None);
+fn delete_pastes_before(date: DateTime<UTC>, no_confirm: bool, database_url: Option<&str>) -> Result<()> {
+    let conn = service::establish_connection(database_url);
 
     let count = models::Paste::count_outdated(&conn, &date)?;
     println!("** Found {} pastes that weren't viewed since {} **", count, date);
@@ -47,11 +47,14 @@ fn delete_pastes_before(date: DateTime<UTC>, no_confirm: bool) -> Result<()> {
 
 pub fn handle(matches: &ArgMatches) -> Result<()> {
     let no_confirm = matches.is_present("no-confirm");
+    let database_url = matches.value_of("database");
     if matches.is_present("migrate") {
-        let dir = env::current_dir().expect("failed to get current directory");
+        let dir = env::current_dir()
+            .map_err(|e| format_err!("failed to get current directory -> {}", e))?;
         match migrant_lib::search_for_config(&dir) {
             None => {
-                Config::init(&dir).expect("failed to initialize project");
+                Config::init(&dir)
+                    .map_err(|e| format_err!("failed to initialize project -> {}", e))?;
             }
             Some(p) => {
                 let config = Config::load(&p).expect("failed to load config");
@@ -78,14 +81,14 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
             let date = UTC.from_utc_date(&date);
             date.and_hms(0, 0, 0)
         };
-        delete_pastes_before(date, no_confirm)?;
+        delete_pastes_before(date, no_confirm, database_url)?;
         return Ok(())
     }
 
     if let Some(v) = matches.value_of("clean-before-days") {
         let n = v.parse::<u32>()?;
         let date = UTC::now() - Duration::seconds(60*60*24*n as i64);
-        delete_pastes_before(date, no_confirm)?;
+        delete_pastes_before(date, no_confirm, database_url)?;
         return Ok(())
     }
 
