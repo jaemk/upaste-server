@@ -85,5 +85,6 @@ fn run(matches: ArgMatches) -> Result<()> {
         return admin::handle(admin_matches)
     }
 
+    println!("upaste: see `--help`");
     Ok(())
 }
