@@ -5,3 +5,5 @@ highlight_full
 upaste.conf
 static/acme_challenge
 .migrant.toml
+.update
+bin
