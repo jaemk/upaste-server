@@ -162,7 +162,7 @@ macro_rules! try_query_aggregate {
 
 
 /// Attempts to unwrap a `Result`, returning an `iron::Response`
-/// in the case of an `Err`
+/// in the case of an `Err` and logging the error with `$msg`, if provided.
 ///
 /// # Examples
 ///
@@ -182,31 +182,40 @@ macro_rules! try_server_error {
     ( $exp:expr ) => {
         match $exp {
             Ok(ok) => ok,
-            Err(err) => return Ok(
-                Response::with(
-                    (status::InternalServerError, format!("[ERROR] {}", err))
-                )
-            ),
+            Err(err) => {
+                error!("Encountered: {}", err);
+                return Ok(
+                    Response::with(
+                        (status::InternalServerError, format!("[ERROR] {}", err))
+                    )
+                );
+            }
         }
     };
     ( $exp:expr, $msg:expr ) => {
         match $exp {
             Ok(ok) => ok,
-            Err(_) => return Ok(
-                Response::with(
-                    (status::InternalServerError, $msg)
-                )
-            ),
+            Err(err) => {
+                error!("{} - from error: {}", $msg, err);
+                return Ok(
+                    Response::with(
+                        (status::InternalServerError, $msg)
+                    )
+                );
+            }
         }
     };
     ( $exp:expr ; $error_status:expr, $msg:expr ) => {
         match $exp {
             Ok(ok) => ok,
-            Err(_) => return Ok(
-                Response::with(
-                    ($error_status, $msg)
-                )
-            ),
+            Err(err) => {
+                error!("{} - from error: {}", $msg, err);
+                return Ok(
+                    Response::with(
+                        ($error_status, $msg)
+                    )
+                );
+            }
         }
     }
 }
