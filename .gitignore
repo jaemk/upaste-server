@@ -7,3 +7,4 @@ static/acme_challenge
 .migrant.toml
 .update
 bin
+db/
