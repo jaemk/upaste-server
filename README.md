@@ -12,7 +12,6 @@ Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
 * download the latest binary release: `./update.py`
 * `./bin/upaste admin migrate`
     * initial run will require setting up a `migrant` config with db-credentials
-    * run again to apply database migrations
 * poke around: `./target/release/upaste admin shell`
 
 ## Running
