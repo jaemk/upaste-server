@@ -1,10 +1,7 @@
 target
-highlight_full
 .env
-.migrant
 upaste.conf
 static/acme_challenge
 .migrant.toml
-.update
+.update-config
 bin
-db/
