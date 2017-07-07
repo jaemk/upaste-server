@@ -80,7 +80,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (pasteId && share) {
         share.addEventListener("click", function(){
-            window.prompt("Copy to clipboard", 'https://' + window.location.host + '/' + pasteId.innerText);
+            window.prompt("Copy to clipboard", window.location.host + '/' + pasteId.innerText);
         });
     }
 
