@@ -15,6 +15,7 @@ Requires=After=nginx.service
 [Service]
 WorkingDirectory=/<PATH_TO_PROJ_DIR>/upaste-server
 ExecStart=/<PATH_TO_PROJ_DIR>/bin/upaste serve --port <PORT> --db-url postgres://<DB_USER>:<DB_PASS>@localhost/<DB_NAME> --log
+Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
