@@ -17,7 +17,7 @@ import tarfile
 
 BASE_DIR    = os.path.dirname(__file__)
 BIN_DIR     = os.path.join(BASE_DIR, 'bin')
-CONFIG_FILE = os.path.join(BASE_DIR, '.update')
+CONFIG_FILE = os.path.join(BASE_DIR, '.update-config')
 REPO        = 'upaste-server'
 
 
@@ -90,7 +90,7 @@ def main():
     os.system('git pull')
 
     # get latest git release information
-    print("** fetching latest release information")
+    print("\n** fetching latest release information")
     latest = urlopen("https://api.github.com/repos/jaemk/{}/releases/latest".format(REPO))
     latest = json.loads(latest.read().decode('utf-8'))
     latest_tag = latest['tag_name']
@@ -105,7 +105,7 @@ def main():
     print("Latest  Tag: {}".format(latest_tag))
 
     if config['tag'] == latest_tag:
-        print("** upaste is up-to-date!")
+        print("\n** upaste is up-to-date!")
         return
 
     # get info on files available for download in the latest release
@@ -121,22 +121,23 @@ def main():
         while True:
             print("\nAvailable binaries:")
             for i, b in enumerate(bins):
-                print("  {}: {}".format(i, b['name']))
+                print("  {}: {}".format(i+1, b['name']))
             n = get_input("\nPlease enter the key of the binary to download >> ")
             try:
                 n = int(n)
-                if n < n_bins:
+                if 0 < n <= n_bins:
                     break
                 else:
-                    print("\nError: Key `{}` out of range `{}-{}`".format(n, 0, n_bins - 1))
+                    print("\nError: Key `{}` out of range `{}-{}`".format(n, 1, n_bins))
             except ValueError:
                 print("\nError: Please enter a number")
-        new_bin = bins[n]
+        new_bin = bins[n-1]
 
         # ex. upaste-v0.2.4-x86_64-unknown-linux-gnu.tar.gz
         target = new_bin['name'].rstrip('.tar.gz').split('-')[2:]
         target = '-'.join(target)
     else:
+        print("\n** Found an existing target: `{}` specified in update config-file: `{}`".format(target, CONFIG_FILE))
         new_bin = None
         for b in bins:
             if target in b['name']:
@@ -148,11 +149,11 @@ def main():
                 print("  {}".format(b['name']))
 
     # download binary tarball
-    print("** fetching `{}`".format(new_bin['name']))
+    print("\n** fetching `{}`".format(new_bin['name']))
     download_to_file(new_bin['download'], new_bin['name'])
 
     # extract binary
-    print("** extracting binary to `bin/upaste`")
+    print("\n** extracting binary to `bin/upaste`")
     tar = tarfile.open(new_bin['name'], 'r:gz')
     tar.extractall()
     tar.close()
@@ -166,7 +167,7 @@ def main():
     # update local release tag / target in our config
     config['tag']    = latest_tag
     config['target'] = target
-    print("** updating local tag in `.update`")
+    print("** updating local tag in `{}`".format(CONFIG_FILE))
     with open(CONFIG_FILE, 'w') as f:
         f.write(json.dumps(config, sort_keys=True, indent=4))
 
