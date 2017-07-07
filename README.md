@@ -1,6 +1,6 @@
 # uPaste Server [![Build Status](https://travis-ci.org/jaemk/upaste-server.svg?branch=master)](https://travis-ci.org/jaemk/upaste-server)
 
-> Basic hastebin clone
+> hastebin clone
 
 Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
 
@@ -9,10 +9,11 @@ Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
 
 * create your postgres database and user, or use the helper script: `./create_db.sh --help`
 * install dependencies: `libpq-dev`
-* download the latest binary release: `./update.py`
-* `./bin/upaste admin migrate`
+* update project files and download the latest binary release: `./update.py`
+* apply database migrations:
+    * `./bin/upaste admin migrate`
     * initial run will require setting up a `migrant` config with db-credentials
-* poke around: `./target/release/upaste admin shell`
+* poke around: `./bin/upaste admin shell`
 
 ## Running
 
@@ -25,10 +26,10 @@ Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
     * copy `nginx.conf.sample` to `/etc/nginx/sites-available`, update with your project info, `sudo nginx -t` to check config
     * setup https certs, see `letsencrypt.info`
     * `sudo systemctl restart nginx`
-* clean out stale posts `./target/release/upaste admin clean-before --days 30 --no-confirm`
+* clean out stale posts `./bin/upaste admin clean-before --days 30 --no-confirm`
 
 ## Development
 
 * install [`rust`](https://rustup.rs/)
 * install [`migrant`](https://github.com/jaemk/migrant) (db migration manager): `cargo install migrant`
-* `cargo build`
+* `cargo run -- serve --log`
