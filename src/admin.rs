@@ -49,42 +49,38 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
     if matches.is_present("shell") {
         let dir = env::current_dir()
             .map_err(|e| format_err!("failed to get current directory -> {}", e))?;
-        match migrant_lib::search_for_config(&dir) {
+        let config = match migrant_lib::search_for_config(&dir) {
             None => {
                 Config::init(&dir)
-                    .map_err(|e| format_err!("failed to initialize project -> {}", e))?;
+                    .map_err(|e| format_err!("failed to initialize project -> {}", e))?
             }
-            Some(p) => {
-                let config = Config::load(&p).expect("failed to load config");
-                migrant_lib::shell(&config)?;
-            }
+            Some(p) => Config::load(&p).expect("failed to load config"),
         };
+        migrant_lib::shell(&config)?;
         return Ok(())
     }
 
     if matches.is_present("migrate") {
         let dir = env::current_dir()
             .map_err(|e| format_err!("failed to get current directory -> {}", e))?;
-        match migrant_lib::search_for_config(&dir) {
+        let config = match migrant_lib::search_for_config(&dir) {
             None => {
                 Config::init(&dir)
-                    .map_err(|e| format_err!("failed to initialize project -> {}", e))?;
+                    .map_err(|e| format_err!("failed to initialize project -> {}", e))?
             }
-            Some(p) => {
-                let config = Config::load(&p).expect("failed to load config");
-                let res = migrant_lib::Migrator::with_config(&config)
-                    .direction(migrant_lib::Direction::Up)
-                    .all(true)
-                    .apply();
-                if let Err(ref err) = res {
-                    if let migrant_lib::Error::MigrationComplete(_) = *err {
-                        println!("Database is up-to-date!");
-                        return Ok(());
-                    }
-                }
-                let _ = res?;
-            }
+            Some(p) => Config::load(&p).expect("failed to load config"),
         };
+        let res = migrant_lib::Migrator::with_config(&config)
+            .direction(migrant_lib::Direction::Up)
+            .all(true)
+            .apply();
+        if let Err(ref err) = res {
+            if let migrant_lib::Error::MigrationComplete(_) = *err {
+                println!("Database is up-to-date!");
+                return Ok(());
+            }
+        }
+        let _ = res?;
         return Ok(())
     }
 
