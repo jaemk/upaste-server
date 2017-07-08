@@ -7,29 +7,31 @@ Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
 
 ## Setup
 
-* create your postgres database and user, or use the helper script: `./create_db.sh --help`
+* Create your postgres database and user, or use the helper script: `./create_db.sh --help`
 * install dependencies: `libpq-dev`
-* update project files and download the latest binary release: `./update.py`
-* apply database migrations:
+* Update project files and download the latest binary release: `./update.py run`
+* Apply database migrations:
     * `./bin/upaste admin migrate`
-    * initial run will require setting up a `migrant` config with db-credentials
-* poke around: `./bin/upaste admin shell`
+    * Initial run will require setting up a `migrant` config with db-credentials
+* Poke around: `./bin/upaste admin shell`
 
 ## Running
 
-* run directly:
+* Run directly:
     * `./bin/upaste serve --port 8000 --public --log`
-* with `systemd`:
-    * copy `upaste.service.sample` to `/etc/systemd/system/upaste.service` and update it with your user/proj-dir info. Enable service, `sudo systemctl enable upaste.service` (see `upaste.service.sample` comments for more info).
+* With `systemd`:
+    * Copy `upaste.service.sample` to `/etc/systemd/system/upaste.service` and update it with your user/proj-dir info.
+    * Enable service: `sudo systemctl enable upaste.service` (see `upaste.service.sample` comments for more info).
     * `sudo systemctl start upaste`
-* behind a proxy (nginx):
-    * copy `nginx.conf.sample` to `/etc/nginx/sites-available`, update with your project info, `sudo nginx -t` to check config
-    * setup https certs, see `letsencrypt.info`
+* Behind a proxy (nginx):
+    * Copy `nginx.conf.sample` to `/etc/nginx/sites-available`, update with your project info
+    * `sudo nginx -t` to check config
+    * Setup https certs, see `letsencrypt.info`
     * `sudo systemctl restart nginx`
-* clean out stale posts `./bin/upaste admin clean-before --days 30 --no-confirm`
+* Clean out stale posts `./bin/upaste admin clean-before --days 30 --no-confirm`
 
 ## Development
 
-* install [`rust`](https://rustup.rs/)
-* install [`migrant`](https://github.com/jaemk/migrant) (db migration manager): `cargo install migrant`
+* Install [`rust`](https://rustup.rs/)
+* Install [`migrant`](https://github.com/jaemk/migrant) (db migration manager): `cargo install migrant`
 * `cargo run -- serve --log`
