@@ -11,6 +11,7 @@ except ImportError:
 
 import os
 import sys
+import argparse
 import json
 import tarfile
 
@@ -84,7 +85,7 @@ def get_input(prompt):
         return ''
 
 
-def main():
+def run(select=False):
     # update project files
     print("** updating project files")
     os.system('git pull')
@@ -104,7 +105,7 @@ def main():
     print("Current Tag: {}".format(config['tag']))
     print("Latest  Tag: {}".format(latest_tag))
 
-    if config['tag'] == latest_tag:
+    if config['tag'] == latest_tag and not select:
         print("\n** upaste is up-to-date!")
         return
 
@@ -116,7 +117,7 @@ def main():
     # determine the target-triple to download.
     # If one is not saved in the config, prompt the user
     target = config.get('target', None)
-    if not target:
+    if not target or select:
         # ask which binary to download
         while True:
             print("\nAvailable binaries:")
@@ -167,14 +168,34 @@ def main():
     # update local release tag / target in our config
     config['tag']    = latest_tag
     config['target'] = target
-    print("** updating local tag in `{}`".format(CONFIG_FILE))
+    print("** updating local tag & target in `{}`".format(CONFIG_FILE))
     with open(CONFIG_FILE, 'w') as f:
         f.write(json.dumps(config, sort_keys=True, indent=4))
 
 
 if __name__ == '__main__':
+    parser = argparse.ArgumentParser(
+            formatter_class=argparse.RawTextHelpFormatter,
+            description=
+'''
+James K. <james.kominick@gmail.com>
+uPaste update utility.
+Updates project files (via git) and downloads binary releases.
+'''
+        )
+    subparsers = parser.add_subparsers(dest='RUN')
+    run_parser = subparsers.add_parser('run')
+    run_parser.add_argument(
+            '-s', '--select',
+            dest='select',
+            action='store_true',
+            help='Require the selection of a binary. By default if a target triple has already '
+                 'been specified, the same triple will be downloaded when updating.',
+            required=False
+        )
+    opts = parser.parse_args()
     try:
-        main()
+        run(select=opts.select)
     except KeyboardInterrupt:
         print("\nExiting...")
 
