@@ -46,41 +46,53 @@ fn delete_pastes_before(date: DateTime<UTC>, no_confirm: bool, database_url: Opt
 
 
 pub fn handle(matches: &ArgMatches) -> Result<()> {
-    if matches.is_present("shell") {
+    if let Some(db_matches) = matches.subcommand_matches("database") {
         let dir = env::current_dir()
             .map_err(|e| format_err!("failed to get current directory -> {}", e))?;
-        let config = match migrant_lib::search_for_config(&dir) {
+        let config_path = match migrant_lib::search_for_config(&dir) {
             None => {
-                Config::init(&dir)
-                    .map_err(|e| format_err!("failed to initialize project -> {}", e))?
+                Config::init_in(&dir)
+                    .for_database(Some("postgres"))?
+                    .initialize()?;
+                match migrant_lib::search_for_config(&dir) {
+                    None => bail!("Unable to find `.migrant.toml` even though it was just saved."),
+                    Some(p) => p,
+                }
             }
-            Some(p) => Config::load(&p).expect("failed to load config"),
+            Some(p) => p,
         };
-        migrant_lib::shell(&config)?;
-        return Ok(())
-    }
 
-    if matches.is_present("migrate") {
-        let dir = env::current_dir()
-            .map_err(|e| format_err!("failed to get current directory -> {}", e))?;
-        let config = match migrant_lib::search_for_config(&dir) {
-            None => {
-                Config::init(&dir)
-                    .map_err(|e| format_err!("failed to initialize project -> {}", e))?
-            }
-            Some(p) => Config::load(&p).expect("failed to load config"),
-        };
-        let res = migrant_lib::Migrator::with_config(&config)
-            .direction(migrant_lib::Direction::Up)
-            .all(true)
-            .apply();
-        if let Err(ref err) = res {
-            if let migrant_lib::Error::MigrationComplete(_) = *err {
-                println!("Database is up-to-date!");
-                return Ok(());
-            }
+        let config = Config::load_file_only(&config_path)?;
+
+        if db_matches.is_present("setup") {
+            config.setup()?;
+            return Ok(())
         }
-        let _ = res?;
+
+        // load applied migrations from the database
+        let config = config.reload()?;
+
+        match db_matches.subcommand() {
+            ("shell", _) => {
+                migrant_lib::shell(&config)?;
+            }
+            ("migrate", _) => {
+                let res = migrant_lib::Migrator::with_config(&config)
+                    .direction(migrant_lib::Direction::Up)
+                    .all(true)
+                    .apply();
+                if let Err(ref err) = res {
+                    if let migrant_lib::Error::MigrationComplete(_) = *err {
+                        println!("Database is up-to-date!");
+                        return Ok(());
+                    }
+                }
+                let _ = res?;
+                return Ok(())
+            }
+            _ => println!("see `--help`"),
+        }
+
         return Ok(())
     }
 
