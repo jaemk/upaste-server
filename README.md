@@ -20,7 +20,7 @@ Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
 * Run directly:
     * `./bin/upaste serve --port 8000 --public --log`
 * With `systemd`:
-    * Copy `upaste.service.sample` to `/etc/systemd/system/upaste.service` and update it with your user/proj-dir info.
+    * Copy `upaste.service.sample` to `/lib/systemd/system/upaste.service` and update it with your user/proj-dir info.
     * Enable service: `sudo systemctl enable upaste.service` (see `upaste.service.sample` comments for more info).
     * `sudo systemctl start upaste`
 * Behind a proxy (nginx):

@@ -1,10 +1,10 @@
 # systemd config
-# copy to /etc/systemd/system/upaste.service
+# copy to /lib/systemd/system/upaste.service
 #
+# systemctl daemon-reload
 # systemctl enable upaste.service
 # systemctl start upaste
 # systemctl status upaste.service
-# systemctl daemon-reload
 # # tail the log
 # journalctl -f -u upaste
 [Unit]
