@@ -85,7 +85,7 @@ def get_input(prompt):
         return ''
 
 
-def run(select=False):
+def run(select=False, no_confirm=False):
     # update project files
     print("** updating project files")
     os.system('git pull')
@@ -149,6 +149,10 @@ def run(select=False):
             for b in bins:
                 print("  {}".format(b['name']))
 
+    print("The following release will be downloaded: {}".format(new_bin['name']))
+    if not no_confirm:
+        confirm = get_input("Do you want to continue? [Y/n] ")
+
     # download binary tarball
     print("\n** fetching `{}`".format(new_bin['name']))
     download_to_file(new_bin['download'], new_bin['name'])
@@ -193,9 +197,16 @@ Updates project files (via git) and downloads binary releases.
                  'been specified, the same triple will be downloaded when updating.',
             required=False
         )
+    run_parser.add_argument(
+            '-y', '--yes',
+            dest='no_confirm',
+            action='store_true',
+            help='Skip confirmation before downloading new release',
+            required=False,
+        )
     opts = parser.parse_args()
     try:
-        run(select=opts.select)
+        run(select=opts.select, no_confirm=opts.no_confirm)
     except KeyboardInterrupt:
         print("\nExiting...")
 
