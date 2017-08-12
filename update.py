@@ -20,6 +20,7 @@ BASE_DIR    = os.path.dirname(__file__)
 BIN_DIR     = os.path.join(BASE_DIR, 'bin')
 CONFIG_FILE = os.path.join(BASE_DIR, '.update-config')
 REPO        = 'upaste-server'
+BIN_NAME    = "upaste"
 
 
 def dl_progress(bytes_read, file_size):
@@ -44,7 +45,7 @@ def dl_progress(bytes_read, file_size):
 
 def get_content_length(headers):
     """
-    python2 names headers all lowercase, python3 has them title-case
+    python2 names headers are lowercase, python3 has them title-case
     """
     ctl = 'content-length'
     for k, v in headers.items():
@@ -106,7 +107,7 @@ def run(select=False, no_confirm=False):
     print("Latest  Tag: {}".format(latest_tag))
 
     if config['tag'] == latest_tag and not select:
-        print("\n** upaste is up-to-date!")
+        print("\n** {} is up-to-date!".format(BIN_NAME))
         return
 
     # get info on files available for download in the latest release
@@ -152,18 +153,21 @@ def run(select=False, no_confirm=False):
     print("The following release will be downloaded: {}".format(new_bin['name']))
     if not no_confirm:
         confirm = get_input("Do you want to continue? [Y/n] ")
+        if confirm and confirm.strip().lower() != 'y':
+            print("Exiting...")
+            return
 
     # download binary tarball
     print("\n** fetching `{}`".format(new_bin['name']))
     download_to_file(new_bin['download'], new_bin['name'])
 
     # extract binary
-    print("\n** extracting binary to `bin/upaste`")
+    print("\n** extracting binary to `bin/{}`".format(BIN_NAME))
     tar = tarfile.open(new_bin['name'], 'r:gz')
     tar.extractall()
     tar.close()
     os.system('mkdir -p {}'.format(BIN_DIR))
-    os.system('mv upaste bin')
+    os.system('mv {} bin'.format(BIN_NAME))
 
     # delete tarball
     print("** cleaning up `{}`".format(new_bin['name']))
@@ -183,7 +187,7 @@ if __name__ == '__main__':
             description=
 '''
 James K. <james.kominick@gmail.com>
-uPaste update utility.
+Release update utility.
 Updates project files (via git) and downloads binary releases.
 '''
         )
