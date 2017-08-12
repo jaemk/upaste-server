@@ -9,8 +9,9 @@
 # journalctl -f -u upaste
 [Unit]
 Description=uPaste App Server
-Requires=After=postgresql.service
-Requires=After=nginx.service
+Requires=postgresql.service
+After=postgresql.service
+Requires=nginx.service
 
 [Service]
 WorkingDirectory=/<PATH_TO_PROJ_DIR>/upaste-server
