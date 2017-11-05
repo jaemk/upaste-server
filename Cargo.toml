@@ -10,7 +10,7 @@ doc = false
 
 [dependencies]
 error-chain = "0.11"
-chrono = { version = "0.3", features = ["serde"] }
+chrono = { version = "0.4", features = ["serde"] }
 clap = "2.21"
 env_logger = "0.4"
 log = "0.3"

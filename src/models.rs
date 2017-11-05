@@ -1,74 +1,114 @@
-// use rusqlite::{self, Connection};
-// use chrono::{DateTime, UTC};
+use std::ops;
+use rusqlite::{self, Connection};
+use rusqlite::types::{FromSql, ToSql, ValueRef, FromSqlResult, ToSqlOutput};
+use chrono::{DateTime, Utc, TimeZone};
 
-// use errors::*;
-
-
-// pub struct NewPaste {
-//     pub key: String,
-//     pub content: String,
-//     pub content_type: String,
-// }
-
-// impl NewPaste {
-//     pub fn insert(self, conn: &Connection) -> Result<Paste> {
-//         let stmt = "insert into pastes (key, content, content_type) values ($1, $2, $3) \
-//                     returning id, date_created, date_viewed";
-//         try_insert_to_model!([conn, stmt, &[&self.key, &self.content, &self.content_type]] ;
-//                              Paste ;
-//                              id: 0, date_created: 1, date_viewed: 2 ;
-//                              key: self.key, content: self.content, content_type: self.content_type)
-//     }
-// }
+use errors::*;
 
 
-// #[derive(Debug)]
-// pub struct Paste {
-//     pub id: i32,
-//     pub key: String,
-//     pub content: String,
-//     pub content_type: String,
-//     pub date_created: DateTime<UTC>,
-//     pub date_viewed: DateTime<UTC>,
-// }
-// impl Paste {
-//     pub fn table_name() -> &'static str {
-//         "pastes"
-//     }
+#[derive(Debug, Clone)]
+pub struct Dt(DateTime<Utc>);
+impl Dt {
+    pub fn now() -> Self {
+        Dt(Utc::now())
+    }
+}
+impl ops::Deref for Dt {
+    type Target = DateTime<Utc>;
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+impl ops::DerefMut for Dt {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        &mut self.0
+    }
+}
 
-//     pub fn from_row(row: postgres::rows::Row) -> Self {
-//         Self {
-//             id:             row.get(0),
-//             key:            row.get(1),
-//             content:        row.get(2),
-//             content_type:   row.get(3),
-//             date_created:   row.get(4),
-//             date_viewed:    row.get(5),
-//         }
-//     }
 
-//     pub fn exists(conn: &Connection, key: &str) -> Result<bool> {
-//         let stmt = "select exists(select 1 from pastes where key = $1)";
-//         try_query_aggregate!([conn, stmt, &[&key]], bool)
-//     }
+impl FromSql for Dt {
+    fn column_result(value: ValueRef) -> FromSqlResult<Self> {
+        value.as_i64().map(|timestamp| {
+            Dt(Utc.timestamp(timestamp, 0))
+        })
+    }
+}
+impl ToSql for Dt {
+    fn to_sql(&self) -> rusqlite::Result<ToSqlOutput> {
+        Ok(self.timestamp().into())
+    }
+}
 
-//     pub fn count_outdated(conn: &Connection, date: &DateTime<UTC>) -> Result<i64> {
-//         let stmt = "select count(*) from pastes where date_viewed < $1";
-//         try_query_aggregate!([conn, stmt, &[&date]], i64)
-//     }
 
-//     pub fn delete_outdated(conn: &Connection, date: &DateTime<UTC>) -> Result<i64> {
-//         let stmt = "with d as (delete from pastes where date_viewed < $1 returning true) \
-//                     select count(*) from d";
-//         try_query_aggregate!([conn, stmt, &[&date]], i64)
-//     }
+pub struct NewPaste {
+    pub key: String,
+    pub content: String,
+    pub content_type: String,
+}
 
-//     pub fn touch_and_get(key: &str, conn: &Connection) -> Result<Paste> {
-//         let stmt = "update pastes set date_viewed = NOW() where key = $1 \
-//                     returning id, key, content, content_type, date_created, date_viewed";
-//         try_query_one!([conn, stmt, &[&key]], Paste)
-//     }
-// }
+impl NewPaste {
+    pub fn insert(self, conn: &Connection) -> Result<Paste> {
+        let stmt = "insert into pastes (key, content, content_type, date_created, date_viewed) values (?, ?, ?, ?, ?)";
+        let now = Dt::now();
+        Ok(try_insert_to_model!(
+                [conn, stmt, &[&self.key, &self.content, &self.content_type, &now, &now]] ;
+                Paste ;
+                date_created: now.clone(), date_viewed: now,
+                key: self.key, content: self.content, content_type: self.content_type))
+    }
+}
+
+
+#[derive(Debug)]
+pub struct Paste {
+    pub id: i64,
+    pub key: String,
+    pub content: String,
+    pub content_type: String,
+    pub date_created: Dt,
+    pub date_viewed: Dt,
+}
+impl Paste {
+    pub fn table_name() -> &'static str {
+        "pastes"
+    }
+
+    pub fn from_row(row: &rusqlite::Row) -> Self {
+        Self {
+            id:             row.get(0),
+            key:            row.get(1),
+            content:        row.get(2),
+            content_type:   row.get(3),
+            date_created:   row.get(4),
+            date_viewed:    row.get(5),
+        }
+    }
+
+    pub fn exists(conn: &Connection, key: &str) -> Result<bool> {
+        let stmt = "select exists(select 1 from pastes where key = $1)";
+        Ok(try_query_aggregate!([conn, stmt, &[&key]], u8) == 1)
+    }
+
+    pub fn count_outdated(conn: &Connection, date: &DateTime<Utc>) -> Result<i64> {
+        let stmt = "select count(*) from pastes where date_viewed < $1";
+        Ok(try_query_aggregate!([conn, stmt, &[&date.timestamp()]], i64))
+    }
+
+    pub fn delete_outdated(conn: &Connection, date: &DateTime<Utc>) -> Result<i32> {
+        let stmt = "delete from pastes where date_viewed < ?";
+        Ok(conn.execute(stmt, &[&date.timestamp()])?)
+    }
+
+    pub fn touch_and_get(key: &str, conn: &mut Connection) -> Result<Self> {
+        let stmt_1 = "update pastes set date_viewed = ? where key = ?";
+        let stmt_2 = "select * from pastes where key = ?";
+        let trans = conn.transaction()?;
+        trans.execute(stmt_1, &[&Dt::now(), &key])?;
+        let paste = trans.query_row(stmt_2, &[&key], Self::from_row)?;
+        trans.commit()?;
+        Ok(paste)
+    }
+}
 
 
 pub static CONTENT_TYPES: [&'static str; 147] = [
