@@ -7,11 +7,12 @@
 use std::env;
 use std::path::Path;
 use std::time;
+use std::sync;
 use env_logger;
 
 use chrono::Local;
-use rusqlite::{self, Connection};
-use r2d2_sqlite::{self, SqliteConnectionManager};
+use rusqlite::Connection;
+use r2d2_sqlite::SqliteConnectionManager;
 use r2d2::{Config, Pool};
 use tera::Tera;
 use rouille;
@@ -21,8 +22,21 @@ use errors::*;
 use {ToResponse};
 
 
-type DbPool = Pool<SqliteConnectionManager>;
+pub type DbPool = Pool<SqliteConnectionManager>;
+pub type Ctx = sync::Arc<Context>;
 
+pub struct Context {
+    pub tera: sync::RwLock<Tera>,
+    pub db: sync::Mutex<DbPool>,
+}
+impl Context {
+    pub fn new(tera: Tera, db: DbPool) -> Self {
+        Self {
+            tera: sync::RwLock::new(tera),
+            db: sync::Mutex::new(db),
+        }
+    }
+}
 
 fn migrant_connect_string() -> Option<String> {
     let dir = env::current_dir()
@@ -75,21 +89,24 @@ pub fn start(host: &str) -> Result<()> {
         .expect("failed to initialize logger");
 
     // connect to our db
-    let db = migrant_connect_string()
-        .ok_or_else(|| format_err!(ErrorKind::Msg, "Can't determine database connection string"))?;
-    let db_pool = establish_connection_pool(&db);
+    let db = migrant_database_path()
+        .ok_or_else(|| format_err!(ErrorKind::Msg, "Can't determine database path"))?;
+    let db_pool = establish_connection_pool(&db.to_str().expect("bad database path"));
     info!(" ** Established database connection pool **");
 
     // compile our template and initialize template engine
     let mut tera = compile_templates!("templates/**/*");
     tera.autoescape_on(vec!["html"]);
 
+    let ctx = sync::Arc::new(Context::new(tera, db_pool));
+
+    info!(" ** Listening at {} **", host);
     rouille::start_server(&host, move |request| {
-        let db_pool = db_pool.clone();
+        let ctx = ctx.clone();
         let start = time::Instant::now();
 
         // dispatch and handle errors
-        let response = match route_request(request, db_pool) {
+        let response = match route_request(request, ctx) {
             Ok(resp) => resp,
             Err(e) => {
                 use self::ErrorKind::*;
@@ -129,9 +146,10 @@ pub fn start(host: &str) -> Result<()> {
 
 
 /// Route the request to appropriate handler
-fn route_request(request: &rouille::Request, db_pool: DbPool) -> Result<rouille::Response> {
+fn route_request(request: &rouille::Request, ctx: Ctx) -> Result<rouille::Response> {
     Ok(router!(request,
-        (GET)   (/)    => { json!({"message": "hey!"}).to_resp()? },
+        (GET)   (/)         => { handlers::home(request, ctx)? },
+        (GET)   (/json)     => { json!({"message": "hey!"}).to_resp()? },
         _ => {
             // static files
             let static_resp = rouille::match_assets(&request, "assets");
