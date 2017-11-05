@@ -13,6 +13,10 @@ error_chain! {
         Migrant(migrant_lib::Error);
     }
     errors {
+        SyncPoison(s: String) {
+            description("SyncPoison")
+            display("SyncPoison Error: {}", s)
+        }
         BadRequest(s: String) {
             description("BadRequest")
             display("BadRequest Error: {}", s)

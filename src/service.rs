@@ -5,7 +5,7 @@
 //!  - Mount static file handler
 //!
 use std::env;
-use std::path::Path;
+use std::path::PathBuf;
 use std::time;
 use std::sync;
 use env_logger;
@@ -19,6 +19,7 @@ use rouille;
 use migrant_lib;
 
 use errors::*;
+use handlers;
 use {ToResponse};
 
 
@@ -38,12 +39,13 @@ impl Context {
     }
 }
 
-fn migrant_connect_string() -> Option<String> {
+
+fn migrant_database_path() -> Option<PathBuf> {
     let dir = env::current_dir()
         .expect("failed to get current directory");
     migrant_lib::search_for_config(&dir)
         .and_then(|p| migrant_lib::Config::load(&p).ok())
-        .and_then(|config| config.connect_string().ok())
+        .and_then(|config| config.database_path().ok())
 }
 
 
@@ -117,10 +119,9 @@ pub fn start(host: &str) -> Result<()> {
                         let body = json!({"error": s});
                         body.to_resp().unwrap().with_status_code(400)
                     }
-                    DoesNotExist(ref s) => {
+                    DoesNotExist(_) => {
                         // not found
-                        let body = json!({"error": s});
-                        body.to_resp().unwrap().with_status_code(404)
+                        rouille::Response::html(ERROR_404).with_status_code(404)
                     }
                     UploadTooLarge(ref s) => {
                         // payload too large / request entity to large

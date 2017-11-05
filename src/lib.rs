@@ -23,9 +23,9 @@ pub mod errors;
 #[macro_use] pub mod macros;
 
 pub mod service;
-//pub mod models;
+pub mod handlers;
+pub mod models;
 //pub mod routes;
-//pub mod handlers;
 //pub mod admin;
 
 use std::io::Read;

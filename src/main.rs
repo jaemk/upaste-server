@@ -7,7 +7,7 @@ use std::env;
 use upaste_server::service;
 // use upaste_server::admin;
 
-use clap::{Arg, App, SubCommand, ArgMatches};
+use clap::{Arg, App, SubCommand};
 
 
 error_chain! {
@@ -66,8 +66,9 @@ pub fn run() -> Result<()> {
         .get_matches();
 
     if let Some(serve_matches) = matches.subcommand_matches("serve") {
-        if serve_matches.is_present("log") {
-            env::set_var("LOG", "info");
+        env::set_var("LOG", "info");
+        if serve_matches.is_present("debug") {
+            env::set_var("LOG", "debug");
         }
 
         let port = serve_matches.value_of("port").unwrap_or("3000");
@@ -77,7 +78,7 @@ pub fn run() -> Result<()> {
         return Ok(());
     }
 
-    if let Some(admin_matches) = matches.subcommand_matches("admin") {
+    if let Some(_admin_matches) = matches.subcommand_matches("admin") {
         //return admin::handle(admin_matches)
     }
 
