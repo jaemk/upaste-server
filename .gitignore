@@ -5,3 +5,4 @@ static/acme_challenge
 .migrant.toml
 .update-config
 bin
+db
