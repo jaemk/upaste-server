@@ -1,24 +1,29 @@
+#![recursion_limit = "1024"]
+#[macro_use] extern crate error_chain;
 extern crate upaste_server;
 #[macro_use] extern crate clap;
 
 use std::env;
 use upaste_server::service;
-use upaste_server::admin;
-use upaste_server::errors::*;
+// use upaste_server::admin;
 
 use clap::{Arg, App, SubCommand, ArgMatches};
 
 
-pub fn main() {
+error_chain! {
+    foreign_links {
+        Upaste(upaste_server::errors::Error);
+    }
+    errors {}
+}
+
+
+pub fn run() -> Result<()> {
     let matches = App::new("upaste")
         .version(crate_version!())
         .about("uPaste Server")
         .subcommand(SubCommand::with_name("serve")
                     .about("Initialize Server")
-                    .arg(Arg::with_name("database")
-                        .long("db-url")
-                        .takes_value(true)
-                        .help("Postgres database URL to connect to"))
                     .arg(Arg::with_name("port")
                         .long("port")
                         .short("p")
@@ -27,9 +32,9 @@ pub fn main() {
                     .arg(Arg::with_name("public")
                         .long("public")
                         .help("Serve on '0.0.0.0' instead of 'localhost'"))
-                    .arg(Arg::with_name("log")
-                        .long("log")
-                        .help("Output logging info. Shortcut for setting env-var LOG=info")))
+                    .arg(Arg::with_name("debug")
+                        .long("debug")
+                        .help("Output debug log info. Shortcut for setting env-var LOG=debug")))
         .subcommand(SubCommand::with_name("admin")
                     .about("admin functions")
                     .subcommand(SubCommand::with_name("database")
@@ -60,18 +65,6 @@ pub fn main() {
                              .help("Auto-confirm/skip any confirmation checks"))))
         .get_matches();
 
-    if let Err(ref e) = run(matches) {
-        use ::std::io::Write;
-        let stderr = &mut ::std::io::stderr();
-        let stderr_msg = "Error writing to stderr";
-        writeln!(stderr, "[ERROR] {}", e).expect(stderr_msg);
-
-        ::std::process::exit(1);
-    }
-}
-
-
-fn run(matches: ArgMatches) -> Result<()> {
     if let Some(serve_matches) = matches.subcommand_matches("serve") {
         if serve_matches.is_present("log") {
             env::set_var("LOG", "info");
@@ -80,15 +73,18 @@ fn run(matches: ArgMatches) -> Result<()> {
         let port = serve_matches.value_of("port").unwrap_or("3000");
         let host_base = if serve_matches.is_present("public") { "0.0.0.0" } else { "localhost" };
         let host = format!("{}:{}", host_base, port);
-        let db_url = serve_matches.value_of("database");
-        service::start(&host, db_url);
+        service::start(&host)?;
         return Ok(());
     }
 
     if let Some(admin_matches) = matches.subcommand_matches("admin") {
-        return admin::handle(admin_matches)
+        //return admin::handle(admin_matches)
     }
 
     println!("upaste: see `--help`");
     Ok(())
 }
+
+
+quick_main!(run);
+

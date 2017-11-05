@@ -6,45 +6,22 @@
 //!
 use std::env;
 use std::path::Path;
-use dotenv::dotenv;
+use std::time;
 use env_logger;
 
 use chrono::Local;
-use postgres::{self, Connection};
-use r2d2_postgres::{self, PostgresConnectionManager};
-
+use rusqlite::{self, Connection};
+use r2d2_sqlite::{self, SqliteConnectionManager};
 use r2d2::{Config, Pool};
-
 use tera::Tera;
-
+use rouille;
 use migrant_lib;
-use iron::prelude::*;
-use iron::typemap::Key;
-use iron::middleware::AfterMiddleware;
-use iron::status;
-use router::{Router, NoRoute};
-use logger;
-use persistent::{Write, Read};
-use mount::Mount;
-use staticfile::Static;
 
-use routes;
+use errors::*;
+use {ToResponse};
 
 
-/// Wrapped r2d2_pool/diesel-connection
-type PgPool = Pool<PostgresConnectionManager>;
-
-
-#[derive(Copy, Clone)]
-/// Database pool wrapper type for iron request type-map
-pub struct DB;
-impl Key for DB { type Value = PgPool; }
-
-
-#[derive(Copy, Clone)]
-/// Tera templates wrapper type for iron request type-map
-pub struct TERA;
-impl Key for TERA { type Value = Tera; }
+type DbPool = Pool<SqliteConnectionManager>;
 
 
 fn migrant_connect_string() -> Option<String> {
@@ -56,34 +33,15 @@ fn migrant_connect_string() -> Option<String> {
 }
 
 
-pub fn establish_connection(database_url: Option<&str>) -> Connection {
-    let db_url = match database_url {
-        Some(url) => url.into(),
-        None => {
-            dotenv().ok();
-            env::var("DATABASE_URL").ok()
-                .or_else(migrant_connect_string)
-                .expect("`--db_url` arg, DATABASE_URL env-var, or `.migrant.toml` config file must be set/available.")
-        },
-    };
-    Connection::connect(db_url.clone(), postgres::TlsMode::None)
-        .expect(&format!("Error connection to {}.", db_url))
+pub fn establish_connection(database_path: &str) -> Connection {
+    Connection::open(database_path)
+        .expect(&format!("Error connection to {}.", database_path))
 }
 
 
-fn establish_connection_pool(database_url: Option<&str>) -> PgPool {
-    let db_url = match database_url {
-        Some(url) => url.into(),
-        None => {
-            dotenv().ok();
-            env::var("DATABASE_URL").ok()
-                .or_else(migrant_connect_string)
-                .expect("`--db_url` arg, DATABASE_URL env-var, or `.migrant.toml` config file must be set/available.")
-        },
-    };
+fn establish_connection_pool(database_path: &str) -> DbPool {
     let config = Config::default();
-    let manager = PostgresConnectionManager::new(db_url, r2d2_postgres::TlsMode::None)
-        .expect("failed to open pooled connection");
+    let manager = SqliteConnectionManager::file(database_path);
     Pool::new(config, manager).expect("Failed to create pool.")
 }
 
@@ -96,19 +54,8 @@ static ERROR_404: &'static str = r##"
 </html>
 "##;
 
-/// Custom 404 Error handler/content
-struct Error404;
-impl AfterMiddleware for Error404 {
-    fn catch(&self, _req: &mut Request, e: IronError) -> IronResult<Response> {
-        if let Some(_) = e.error.downcast::<NoRoute>() {
-            return Ok(Response::with((mime!(Text/Html), status::NotFound, ERROR_404)))
-        }
-        Err(e)
-    }
-}
 
-
-pub fn start(host: &str, db: Option<&str>) {
+pub fn start(host: &str) -> Result<()> {
     // get default host
     let host = if host.is_empty() { "localhost:3000" } else { host };
 
@@ -127,40 +74,73 @@ pub fn start(host: &str, db: Option<&str>) {
         .init()
         .expect("failed to initialize logger");
 
-    // iron request-middleware loggers
-    let format = logger::Format::new("[{request-time}] [{status}] {method} {uri}").unwrap();
-    let (log_before, log_after) = logger::Logger::new(Some(format));
-
     // connect to our db
-    let db_pool = establish_connection_pool(db);
+    let db = migrant_connect_string()
+        .ok_or_else(|| format_err!(ErrorKind::Msg, "Can't determine database connection string"))?;
+    let db_pool = establish_connection_pool(&db);
     info!(" ** Established database connection pool **");
 
     // compile our template and initialize template engine
     let mut tera = compile_templates!("templates/**/*");
     tera.autoescape_on(vec!["html"]);
 
-    // mount our url endpoints
-    let mut router = Router::new();
-    routes::mount(&mut router);
+    rouille::start_server(&host, move |request| {
+        let db_pool = db_pool.clone();
+        let start = time::Instant::now();
 
-    // chain our router,
-    // insert our mutable db_pool into request.typemap,
-    // insert our template engine into request.typemap,
-    // link our request access loggers
-    let mut chain = Chain::new(router);
-    chain.link_before(log_before);
-    chain.link_after(log_after);
-    chain.link_after(Error404);
-    chain.link(Write::<DB>::both(db_pool));
-    chain.link(Read::<TERA>::both(tera));
+        // dispatch and handle errors
+        let response = match route_request(request, db_pool) {
+            Ok(resp) => resp,
+            Err(e) => {
+                use self::ErrorKind::*;
+                error!("Handler Error: {}", e);
+                match *e {
+                    BadRequest(ref s) => {
+                        // bad request
+                        let body = json!({"error": s});
+                        body.to_resp().unwrap().with_status_code(400)
+                    }
+                    DoesNotExist(ref s) => {
+                        // not found
+                        let body = json!({"error": s});
+                        body.to_resp().unwrap().with_status_code(404)
+                    }
+                    UploadTooLarge(ref s) => {
+                        // payload too large / request entity to large
+                        let body = json!({"error": s});
+                        body.to_resp().unwrap().with_status_code(413)
+                    }
+                    OutOfSpace(ref s) => {
+                        // service unavailable
+                        let body = json!({"error": s});
+                        body.to_resp().unwrap().with_status_code(503)
+                    }
+                    _ => rouille::Response::text("Something went wrong").with_status_code(500),
+                }
+            }
+        };
 
-    // mount our chain of services and a static file handler
-    let mut mount = Mount::new();
-    mount.mount("/", chain)
-         .mount("/favicon.ico", Static::new(Path::new("static/favicon.ico")))
-         .mount("/robots.txt", Static::new(Path::new("static/robots.txt")))
-         .mount("/static/", Static::new(Path::new("static")));
-
-    info!(" ** Serving at {} **", host);
-    Iron::new(mount).http(host).unwrap();
+        let elapsed = start.elapsed();
+        let elapsed = (elapsed.as_secs() * 1_000) as f32 + (elapsed.subsec_nanos() as f32 / 1_000_000.);
+        info!("[{}] {} {:?} {}ms", request.method(), response.status_code, request.url(), elapsed);
+        response
+    });
 }
+
+
+/// Route the request to appropriate handler
+fn route_request(request: &rouille::Request, db_pool: DbPool) -> Result<rouille::Response> {
+    Ok(router!(request,
+        (GET)   (/)    => { json!({"message": "hey!"}).to_resp()? },
+        _ => {
+            // static files
+            let static_resp = rouille::match_assets(&request, "assets");
+            if static_resp.is_success() {
+                static_resp
+            } else {
+                bail_fmt!(ErrorKind::DoesNotExist, "nothing here")
+            }
+        }
+    ))
+}
+
