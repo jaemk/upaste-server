@@ -12,7 +12,7 @@ Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
 * Apply database migrations:
     * `bin/upaste admin database migrate`
     * Initial run will require setting up a `migrant` config with db-credentials
-* Poke around: `bin/upaste admin database shell`
+* Poke around: `bin/upaste admin database shell` (requires `sqlite3` to be installed)
 
 ## Running
 
