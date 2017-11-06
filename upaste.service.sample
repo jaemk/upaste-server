@@ -9,14 +9,13 @@
 # journalctl -f -u upaste
 [Unit]
 Description=uPaste App Server
-Requires=postgresql.service
-After=postgresql.service
 Requires=nginx.service
 
 [Service]
 WorkingDirectory=/<PATH_TO_PROJ_DIR>/upaste-server
-ExecStart=/<PATH_TO_PROJ_DIR>/bin/upaste serve --port <PORT> --db-url postgres://<DB_USER>:<DB_PASS>@localhost/<DB_NAME> --log
+ExecStart=/<PATH_TO_PROJ_DIR>/bin/upaste serve --port <PORT>
 Restart=on-failure
 
 [Install]
 WantedBy=multi-user.target
+
