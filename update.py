@@ -89,7 +89,7 @@ def get_input(prompt):
 def run(select=False, no_confirm=False):
     # update project files
     print("** updating project files")
-    os.system('git pull')
+    os.system('git pull --rebase=false')
 
     # get latest git release information
     print("\n** fetching latest release information")
