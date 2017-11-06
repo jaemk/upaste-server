@@ -3,17 +3,17 @@ General Admin commands
 
 */
 use std::env;
-use migrant_lib::{self, Config};
+use std::path;
 use std::io::Write;
+
+use migrant_lib::{self, Config};
+use clap::ArgMatches;
+use chrono::{Utc, NaiveDate, TimeZone, DateTime};
+use time::Duration;
 
 use errors::*;
 use models;
 use service;
-
-use clap::ArgMatches;
-use chrono::{UTC, NaiveDate, TimeZone, DateTime};
-use time::Duration;
-
 
 /// Print a message and require y/n confirmation
 fn confirm(msg: &str) -> Result<()> {
@@ -28,15 +28,15 @@ fn confirm(msg: &str) -> Result<()> {
 
 
 /// Delete stale pastes that haven't been viewed prior to a given date.
-fn delete_pastes_before(date: DateTime<UTC>, no_confirm: bool, database_url: Option<&str>) -> Result<()> {
-    let conn = service::establish_connection(database_url);
+fn delete_pastes_before<T: AsRef<path::Path>>(date: DateTime<Utc>, no_confirm: bool, database_path: T) -> Result<()> {
+    let conn = service::establish_connection(database_path.as_ref());
 
     let count = models::Paste::count_outdated(&conn, &date)?;
     println!("** Found {} pastes that weren't viewed since {} **", count, date);
 
     if !no_confirm {
-        let conf = confirm(&format!("Are you sure you want to delete {} pastes that weren't viewed since {}? (y/n) >> ", count, date));
-        if !conf.is_ok() { return Ok(()) }
+        let conf = confirm(&format!("Are you sure you want to delete {} pastes that weren't viewed since {}? [y/n] ", count, date));
+        if conf.is_err() { return Ok(()) }
     }
 
     let n_deleted = models::Paste::delete_outdated(&conn, &date)?;
@@ -47,12 +47,11 @@ fn delete_pastes_before(date: DateTime<UTC>, no_confirm: bool, database_url: Opt
 
 pub fn handle(matches: &ArgMatches) -> Result<()> {
     if let Some(db_matches) = matches.subcommand_matches("database") {
-        let dir = env::current_dir()
-            .map_err(|e| format_err!("failed to get current directory -> {}", e))?;
+        let dir = env::current_dir()?;
         let config_path = match migrant_lib::search_for_config(&dir) {
             None => {
                 Config::init_in(&dir)
-                    .for_database(Some("postgres"))?
+                    .for_database(Some("sqlite"))?
                     .initialize()?;
                 match migrant_lib::search_for_config(&dir) {
                     None => bail!("Unable to find `.migrant.toml` even though it was just saved."),
@@ -98,22 +97,26 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
 
     if let Some(matches) = matches.subcommand_matches("clean-before") {
         let no_confirm = matches.is_present("no-confirm");
-        let database_url = matches.value_of("database");
+        let database_path = match matches.value_of("database") {
+            Some(p) => path::PathBuf::from(p),
+            None => service::migrant_database_path()
+                .ok_or_else(|| format_err!(ErrorKind::Msg, "No config file found"))?,
+        };
         if let Some(v) = matches.value_of("date") {
             let date = {
                 let date = NaiveDate::parse_from_str(v, "%Y-%m-%d")
-                    .map_err(|e| format_err!("Invalid timestamp format (yyyy-mm-dd): {} -- {}", v, e))?;
-                let date = UTC.from_utc_date(&date);
+                    .chain_err(|| format!("Invalid timestamp format (yyyy-mm-dd): {}", v))?;
+                let date = Utc.from_utc_date(&date);
                 date.and_hms(0, 0, 0)
             };
-            delete_pastes_before(date, no_confirm, database_url)?;
+            delete_pastes_before(date, no_confirm, &database_path)?;
             return Ok(())
         }
 
         if let Some(v) = matches.value_of("days") {
             let n = v.parse::<u32>()?;
-            let date = UTC::now() - Duration::seconds(60*60*24*n as i64);
-            delete_pastes_before(date, no_confirm, database_url)?;
+            let date = Utc::now() - Duration::seconds(60*60*24*n as i64);
+            delete_pastes_before(date, no_confirm, &database_path)?;
             return Ok(())
         }
     }

@@ -5,7 +5,7 @@
 //!  - Mount static file handler
 //!
 use std::env;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time;
 use std::sync;
 use env_logger;
@@ -23,9 +23,12 @@ use handlers;
 use {ToResponse};
 
 
+// convenience wrapper types
 pub type DbPool = Pool<SqliteConnectionManager>;
 pub type Ctx = sync::Arc<Context>;
 
+
+/// Request context with template and database access
 pub struct Context {
     pub tera: sync::RwLock<Tera>,
     pub db: sync::Mutex<DbPool>,
@@ -40,7 +43,8 @@ impl Context {
 }
 
 
-fn migrant_database_path() -> Option<PathBuf> {
+/// Grab the database path from out migrant configuration file
+pub fn migrant_database_path() -> Option<PathBuf> {
     let dir = env::current_dir()
         .expect("failed to get current directory");
     migrant_lib::search_for_config(&dir)
@@ -49,15 +53,15 @@ fn migrant_database_path() -> Option<PathBuf> {
 }
 
 
-pub fn establish_connection(database_path: &str) -> Connection {
-    Connection::open(database_path)
-        .expect(&format!("Error connection to {}.", database_path))
+pub fn establish_connection<T: AsRef<Path>>(database_path: T) -> Connection {
+    Connection::open(database_path.as_ref())
+        .expect(&format!("Error connection to {:?}.", database_path.as_ref()))
 }
 
 
-fn establish_connection_pool(database_path: &str) -> DbPool {
+fn establish_connection_pool<T: AsRef<Path>>(database_path: T) -> DbPool {
     let config = Config::default();
-    let manager = SqliteConnectionManager::file(database_path);
+    let manager = SqliteConnectionManager::file(database_path.as_ref());
     Pool::new(config, manager).expect("Failed to create pool.")
 }
 
@@ -93,7 +97,7 @@ pub fn start(host: &str) -> Result<()> {
     // connect to our db
     let db = migrant_database_path()
         .ok_or_else(|| format_err!(ErrorKind::Msg, "Can't determine database path"))?;
-    let db_pool = establish_connection_pool(&db.to_str().expect("bad database path"));
+    let db_pool = establish_connection_pool(&db);
     info!(" ** Established database connection pool **");
 
     // compile our template and initialize template engine
@@ -149,8 +153,25 @@ pub fn start(host: &str) -> Result<()> {
 /// Route the request to appropriate handler
 fn route_request(request: &rouille::Request, ctx: Ctx) -> Result<rouille::Response> {
     Ok(router!(request,
-        (GET)   (/)         => { handlers::home(request, ctx)? },
-        (GET)   (/json)     => { json!({"message": "hey!"}).to_resp()? },
+        (GET)   (/)     => { handlers::home(request, &ctx)? },
+        (POST)  (/new)  => { handlers::new_paste(request, &ctx)? },
+        (GET)   (/raw/{key: String}) => { handlers::view_paste_raw(request, &ctx, &key)? },
+        (GET)   (/p/{key: String})   => {
+            // return a formatted paste, or show the default empty home page
+            let paste_resp = handlers::view_paste(request, &ctx, &key);
+            match paste_resp {
+                Ok(resp) => resp,
+                Err(e) => {
+                    match *e {
+                        ErrorKind::DoesNotExist(_) => {
+                            info!("Paste not found: {}", key);
+                            handlers::home(request, &ctx)?
+                        }
+                        _ => return Err(e),
+                    }
+                }
+            }
+        },
         _ => {
             // static files
             let static_resp = rouille::match_assets(&request, "assets");

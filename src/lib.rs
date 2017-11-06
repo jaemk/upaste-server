@@ -25,8 +25,7 @@ pub mod errors;
 pub mod service;
 pub mod handlers;
 pub mod models;
-//pub mod routes;
-//pub mod admin;
+pub mod admin;
 
 use std::io::Read;
 use errors::*;

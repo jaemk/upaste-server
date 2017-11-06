@@ -99,12 +99,16 @@ impl Paste {
         Ok(conn.execute(stmt, &[&date.timestamp()])?)
     }
 
-    pub fn touch_and_get(key: &str, conn: &mut Connection) -> Result<Self> {
+    pub fn touch_and_get(conn: &mut Connection, key: &str) -> Result<Self> {
         let stmt_1 = "update pastes set date_viewed = ? where key = ?";
         let stmt_2 = "select * from pastes where key = ?";
         let trans = conn.transaction()?;
         trans.execute(stmt_1, &[&Dt::now(), &key])?;
-        let paste = trans.query_row(stmt_2, &[&key], Self::from_row)?;
+        let paste = trans.query_row(stmt_2, &[&key], Self::from_row)
+            .map_err(|e| match e {
+                rusqlite::Error::QueryReturnedNoRows => format_err!(ErrorKind::DoesNotExist, "paste not found"),
+                _ => ErrorKind::Sqlite(e),
+            })?;
         trans.commit()?;
         Ok(paste)
     }

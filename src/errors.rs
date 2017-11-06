@@ -1,4 +1,5 @@
 use std;
+use r2d2;
 use rusqlite;
 use serde_json;
 use migrant_lib;
@@ -10,6 +11,7 @@ error_chain! {
         Sqlite(rusqlite::Error);
         ParseInt(std::num::ParseIntError);
         Json(serde_json::Error);
+        DbPoolTimeout(r2d2::GetTimeout);
         Migrant(migrant_lib::Error);
     }
     errors {

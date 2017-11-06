@@ -5,7 +5,7 @@ extern crate upaste_server;
 
 use std::env;
 use upaste_server::service;
-// use upaste_server::admin;
+use upaste_server::admin;
 
 use clap::{Arg, App, SubCommand};
 
@@ -48,9 +48,9 @@ pub fn run() -> Result<()> {
                     .subcommand(SubCommand::with_name("clean-before")
                         .about("Clean out stale pastes by date or number of days")
                         .arg(Arg::with_name("database")
-                             .long("db-url")
+                             .long("db-path")
                              .takes_value(true)
-                             .help("Postgres database URL to connect to"))
+                             .help("Sqlite database path to connect to"))
                         .arg(Arg::with_name("date")
                              .long("--date")
                              .takes_value(true)
@@ -78,8 +78,9 @@ pub fn run() -> Result<()> {
         return Ok(());
     }
 
-    if let Some(_admin_matches) = matches.subcommand_matches("admin") {
-        //return admin::handle(admin_matches)
+    if let Some(admin_matches) = matches.subcommand_matches("admin") {
+        admin::handle(admin_matches)?;;
+        return Ok(());
     }
 
     println!("upaste: see `--help`");
