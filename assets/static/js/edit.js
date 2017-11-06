@@ -3,6 +3,7 @@
  *
  */
 
+VIEW_BASE_URL = "/p/";
 
 document.addEventListener("DOMContentLoaded", function() {
     var save   = document.getElementById("save-paste");     // save-paste button/element
@@ -39,13 +40,13 @@ document.addEventListener("DOMContentLoaded", function() {
             http.setRequestHeader("Content-Type", "text/plain");
             http.onreadystatechange = function() {
                 if (http.readyState !== XMLHttpRequest.DONE) { return; }
-                if (http.status >= 500) {
+                if (http.status != 200) {
                     alert("Error posting paste.");
                     return;
                 }
                 var resp = JSON.parse(http.responseText);
                 if (resp.key) {
-                    window.location.href = "/"+resp.key;
+                    window.location.href = VIEW_BASE_URL+resp.key;
                 }
                 else {
                     alert("Error posting paste.");
@@ -80,7 +81,7 @@ document.addEventListener("DOMContentLoaded", function() {
 
     if (pasteId && share) {
         share.addEventListener("click", function(){
-            window.prompt("Copy to clipboard", window.location.host + '/' + pasteId.innerText);
+            window.prompt("Copy to clipboard", window.location.host + VIEW_BASE_URL + pasteId.innerText);
         });
     }
 
