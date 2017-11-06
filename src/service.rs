@@ -155,7 +155,7 @@ fn route_request(request: &rouille::Request, ctx: Ctx) -> Result<rouille::Respon
     Ok(router!(request,
         (GET)   (/)     => { handlers::home(request, &ctx)? },
         (POST)  (/new)  => { handlers::new_paste(request, &ctx)? },
-        (GET)   (/raw/{key: String}) => { handlers::view_paste_raw(request, &ctx, &key)? },
+        (GET)   (/p/raw/{key: String}) => { handlers::view_paste_raw(request, &ctx, &key)? },
         (GET)   (/p/{key: String})   => {
             // return a formatted paste, or show the default empty home page
             let paste_resp = handlers::view_paste(request, &ctx, &key);
