@@ -7,6 +7,7 @@ Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
 
 ## Setup
 
+* Clone this repo
 * Update project files and download the latest binary release: `./update.py run`
 * Apply database migrations:
     * `bin/upaste admin database migrate`
