@@ -30,6 +30,10 @@ pub mod admin;
 use std::io::Read;
 use errors::*;
 
+
+const MAX_PASTE_BYTES: usize = 1_000_000;
+
+
 // ------------------------------------------------
 // Traits for augmenting `rouille`
 // ------------------------------------------------

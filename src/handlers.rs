@@ -1,7 +1,7 @@
 //! Handlers
 //!  - Endpoint handlers
 //!
-use std::io::Read;
+use std::io::{self, BufRead};
 
 use rand::{self, Rng};
 use rouille::{Request, Response};
@@ -14,6 +14,7 @@ use {ToResponse, FromRequestQuery};
 
 use models;
 use models::CONTENT_TYPES;
+use {MAX_PASTE_BYTES};
 
 
 /// Generate a new random key
@@ -52,11 +53,46 @@ pub struct NewPasteQueryParams {
 
 /// Endpoint for creating a new paste record
 pub fn new_paste(req: &Request, ctx: &Ctx) -> Result<Response> {
-    let mut paste_content = String::new();
-    let _ = req.data().expect("Unable to read request body").read_to_string(&mut paste_content);
-
     let paste_type = req.parse_query_params::<NewPasteQueryParams>()?.type_;
     let paste_type = paste_type.unwrap_or_else(|| "auto".to_string());
+
+    if let Some(ct_len) = req.header("content-length") {
+        if ct_len.parse::<usize>()? > MAX_PASTE_BYTES {
+            bail_fmt!(ErrorKind::UploadTooLarge, "Upload too large")
+        }
+    }
+
+    let mut content = vec![];
+    let mut byte_count = 0;
+    let mut stream = io::BufReader::new(req.data().expect("Unable to read request body"));
+    loop {
+        let n = {
+            let buf = stream.fill_buf()?;
+            content.extend_from_slice(&buf);
+            buf.len()
+        };
+        stream.consume(n);
+        if n == 0 { break; }
+
+        byte_count += n;
+        if byte_count > MAX_PASTE_BYTES {
+            error!("Paste too large");
+            // See if we can drain the rest of the stream and send a real response
+            // before we kill the connection
+            let mut over = 0;
+            loop {
+                let n = {
+                    let buf = stream.fill_buf()?;
+                    buf.len()
+                };
+                stream.consume(n);
+                over += n;
+                if n == 0 || over >= 10_000 { break; }
+            }
+            bail_fmt!(ErrorKind::UploadTooLarge, "Upload too large")
+        }
+    }
+    let paste_content = String::from_utf8(content)?;
 
     let new_paste = {
         let mut conn = ctx.db.lock()
