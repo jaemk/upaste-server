@@ -56,13 +56,17 @@ pub fn new_paste(req: &Request, ctx: &Ctx) -> Result<Response> {
     let paste_type = req.parse_query_params::<NewPasteQueryParams>()?.type_;
     let paste_type = paste_type.unwrap_or_else(|| "auto".to_string());
 
-    if let Some(ct_len) = req.header("content-length") {
-        if ct_len.parse::<usize>()? > MAX_PASTE_BYTES {
-            bail_fmt!(ErrorKind::UploadTooLarge, "Upload too large")
+    let mut content = match req.header("content-length") {
+        Some(ct_len) => {
+            let ct_len = ct_len.parse::<usize>()?;
+            if ct_len > MAX_PASTE_BYTES {
+                bail_fmt!(ErrorKind::UploadTooLarge, "Upload too large")
+            }
+            Vec::with_capacity(ct_len)
         }
-    }
+        None => vec![],
+    };
 
-    let mut content = vec![];
     let mut byte_count = 0;
     let mut stream = io::BufReader::new(req.data().expect("Unable to read request body"));
     loop {
