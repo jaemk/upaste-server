@@ -32,6 +32,7 @@ use errors::*;
 
 
 const MAX_PASTE_BYTES: usize = 1_000_000;
+const MAX_PASTE_AGE_SECONDS: i64 = 60 * 60 * 24 * 30;
 
 
 // ------------------------------------------------

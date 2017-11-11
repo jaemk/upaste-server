@@ -6,11 +6,13 @@
 //!
 use std::io;
 use std::env;
+use std::time;
 use std::path::{Path, PathBuf};
 use std::sync;
+use std::thread;
 use env_logger;
 
-use chrono::Local;
+use chrono::{self, Local};
 use rusqlite::Connection;
 use r2d2_sqlite::SqliteConnectionManager;
 use r2d2::{Config, Pool};
@@ -20,7 +22,8 @@ use migrant_lib;
 
 use errors::*;
 use handlers;
-use {ToResponse};
+use models;
+use {ToResponse, MAX_PASTE_AGE_SECONDS};
 
 
 // convenience wrapper types
@@ -102,6 +105,29 @@ impl io::Write for MyLogger {
     }
 }
 
+
+fn init_db_sweeper(ctx: Ctx) {
+    thread::spawn(move || {
+        loop {
+            let cutoff = chrono::Utc::now()
+                .checked_sub_signed(chrono::Duration::seconds(MAX_PASTE_AGE_SECONDS))
+                .expect("Error calculating stale cutoff date");
+            let deleted: Result<i32> = (|| {
+                let conn = ctx.db.lock()
+                    .map_err(|_| format_err!(ErrorKind::SyncPoison, "lock poisoned"))?
+                    .get()?;
+                Ok(models::Paste::delete_outdated(&conn, &cutoff)?)
+            })();
+            match deleted {
+                Ok(count) => info!(" ** Cleaned out {} stale pastes **", count),
+                Err(e) => panic!("Error cleaning stale pastes: {}", e),
+            }
+            thread::sleep(time::Duration::from_secs(60 * 10));
+        }
+    });
+}
+
+
 pub fn start(host: &str) -> Result<()> {
     // get default host
     let host = if host.is_empty() { "localhost:3000" } else { host };
@@ -132,6 +158,7 @@ pub fn start(host: &str) -> Result<()> {
     tera.autoescape_on(vec!["html"]);
 
     let ctx = sync::Arc::new(Context::new(tera, db_pool));
+    init_db_sweeper(ctx.clone());
 
     info!(" ** Listening at {} **", host);
     rouille::start_server(&host, move |request| {

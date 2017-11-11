@@ -10,11 +10,8 @@ use rusqlite::Connection;
 
 use errors::*;
 use service::Ctx;
-use {ToResponse, FromRequestQuery};
-
-use models;
-use models::CONTENT_TYPES;
-use {MAX_PASTE_BYTES};
+use models::{self, CONTENT_TYPES};
+use {ToResponse, FromRequestQuery, MAX_PASTE_BYTES};
 
 
 /// Generate a new random key
