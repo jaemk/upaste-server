@@ -4,9 +4,9 @@
 //!  - Mount url endpoints to `handlers` functions
 //!  - Mount static file handler
 //!
+use std::io;
 use std::env;
 use std::path::{Path, PathBuf};
-use std::time;
 use std::sync;
 use env_logger;
 
@@ -75,6 +75,33 @@ static ERROR_404: &'static str = r##"
 "##;
 
 
+/// Logging workaround until custom logging api is available
+/// https://github.com/tomaka/rouille/pull/158
+struct MyLogger {
+    buf: Vec<u8>,
+}
+impl MyLogger {
+    fn new() -> Self {
+        Self { buf: vec![] }
+    }
+}
+impl io::Write for MyLogger {
+    fn write(&mut self, buf: &[u8]) -> ::std::io::Result<usize> {
+        self.buf.extend_from_slice(buf);
+        if let Some(byte) = buf.last() {
+            if *byte == '\n' as u8 {
+                let s = ::std::str::from_utf8(&self.buf)
+                    .map_err(|_| ::std::io::Error::new(::std::io::ErrorKind::InvalidData, "bad utf8"))?;
+                info!("{}", s);
+            }
+        }
+        Ok(buf.len())
+    }
+    fn flush(&mut self) -> ::std::io::Result<()> {
+        panic!("unsupported")
+    }
+}
+
 pub fn start(host: &str) -> Result<()> {
     // get default host
     let host = if host.is_empty() { "localhost:3000" } else { host };
@@ -109,43 +136,39 @@ pub fn start(host: &str) -> Result<()> {
     info!(" ** Listening at {} **", host);
     rouille::start_server(&host, move |request| {
         let ctx = ctx.clone();
-        let start = time::Instant::now();
-
         // dispatch and handle errors
-        let response = match route_request(request, ctx) {
-            Ok(resp) => resp,
-            Err(e) => {
-                use self::ErrorKind::*;
-                error!("Handler Error: {}", e);
-                match *e {
-                    BadRequest(ref s) => {
-                        // bad request
-                        let body = json!({"error": s});
-                        body.to_resp().unwrap().with_status_code(400)
+        rouille::log(request, MyLogger::new(), move || {
+            let response = match route_request(request, ctx) {
+                Ok(resp) => resp,
+                Err(e) => {
+                    use self::ErrorKind::*;
+                    error!("Handler Error: {}", e);
+                    match *e {
+                        BadRequest(ref s) => {
+                            // bad request
+                            let body = json!({"error": s});
+                            body.to_resp().unwrap().with_status_code(400)
+                        }
+                        DoesNotExist(_) => {
+                            // not found
+                            rouille::Response::html(ERROR_404).with_status_code(404)
+                        }
+                        UploadTooLarge(ref s) => {
+                            // payload too large / request entity to large
+                            let body = json!({"error": s});
+                            body.to_resp().unwrap().with_status_code(413)
+                        }
+                        OutOfSpace(ref s) => {
+                            // service unavailable
+                            let body = json!({"error": s});
+                            body.to_resp().unwrap().with_status_code(503)
+                        }
+                        _ => rouille::Response::text("Something went wrong").with_status_code(500),
                     }
-                    DoesNotExist(_) => {
-                        // not found
-                        rouille::Response::html(ERROR_404).with_status_code(404)
-                    }
-                    UploadTooLarge(ref s) => {
-                        // payload too large / request entity to large
-                        let body = json!({"error": s});
-                        body.to_resp().unwrap().with_status_code(413)
-                    }
-                    OutOfSpace(ref s) => {
-                        // service unavailable
-                        let body = json!({"error": s});
-                        body.to_resp().unwrap().with_status_code(503)
-                    }
-                    _ => rouille::Response::text("Something went wrong").with_status_code(500),
                 }
-            }
-        };
-
-        let elapsed = start.elapsed();
-        let elapsed = (elapsed.as_secs() * 1_000) as f32 + (elapsed.subsec_nanos() as f32 / 1_000_000.);
-        info!("[{}] {} {:?} {}ms", request.method(), response.status_code, request.url(), elapsed);
-        response
+            };
+            response
+        })
     });
 }
 
