@@ -150,3 +150,11 @@ pub fn home(_req: &Request, ctx: &Ctx) -> Result<Response> {
     let content = templates.render("core/edit.html", &context).unwrap();
     Ok(Response::html(content))
 }
+
+
+pub fn appinfo() -> Result<Response> {
+    Ok(json!({
+        "version": env!("CARGO_PKG_VERSION"),
+    }).to_resp()?)
+}
+

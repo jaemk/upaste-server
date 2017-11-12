@@ -203,8 +203,9 @@ pub fn start(host: &str) -> Result<()> {
 /// Route the request to appropriate handler
 fn route_request(request: &rouille::Request, ctx: Ctx) -> Result<rouille::Response> {
     Ok(router!(request,
-        (GET)   (/)     => { handlers::home(request, &ctx)? },
-        (POST)  (/new)  => { handlers::new_paste(request, &ctx)? },
+        (GET)   (/)         => { handlers::home(request, &ctx)? },
+        (GET)   (/appinfo)  => { handlers::appinfo()? },
+        (POST)  (/new)      => { handlers::new_paste(request, &ctx)? },
         (GET)   (/p/raw/{key: String}) => { handlers::view_paste_raw(request, &ctx, &key)? },
         (GET)   (/p/{key: String})   => {
             // return a formatted paste, or show the default empty home page
