@@ -27,7 +27,9 @@ Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
     * `sudo nginx -t` to check config
     * Setup https certs, see `letsencrypt.info`
     * `sudo systemctl restart nginx`
-* Clean out stale posts `bin/upaste admin clean-before --days 30 --no-confirm`
+* Clean out stale posts `bin/upaste admin clean-before --days 30 --no-confirm` (haven't been viewed in 30 days)
+    * An internal database sweeper will run every 10 minutes and delete pastes that haven't been
+      viewed within the past 30 dats.
 
 ## Development
 

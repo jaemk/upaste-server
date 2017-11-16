@@ -81,7 +81,7 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
                     .all(true)
                     .apply();
                 if let Err(ref err) = res {
-                    if let migrant_lib::Error::MigrationComplete(_) = *err {
+                    if err.is_migration_complete() {
                         println!("Database is up-to-date!");
                         return Ok(());
                     }

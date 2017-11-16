@@ -21,8 +21,14 @@ serde_derive = "1"
 serde_json = "1"
 serde_urlencoded = "0.5"
 tera = "0.10"
-migrant_lib = { version = "0.11", features = ["sqlite"] }
+migrant_lib = { version = "0.12", features = ["sqlite"] }
+rusqlite = { version = "0.13", features = ["serde_json", "chrono", "bundled"] }
 r2d2 = "0.7"
+
+# r2d2_sqlite = "0.3"
+# to use the latest `rusqlite = "0.13"`
+r2d2_sqlite = { git = "http://github.com/jaemk/r2d2-sqlite", rev = "38584e42e123aa3941341db65430e1b100ee60f7" }
+
 # rouille = "1"
 # For new `router!` syntax and `log_custom`
 rouille = { git = "https://github.com/tomaka/rouille", rev = "b1b88b1748771a334a78e53c9cc7b21d35bdfa53" }
