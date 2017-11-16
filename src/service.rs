@@ -4,7 +4,6 @@
 //!  - Mount url endpoints to `handlers` functions
 //!  - Mount static file handler
 //!
-use std::io;
 use std::env;
 use std::time;
 use std::path::{Path, PathBuf};
@@ -78,34 +77,6 @@ static ERROR_404: &'static str = r##"
 "##;
 
 
-/// Logging workaround until custom logging api is available
-/// https://github.com/tomaka/rouille/pull/158
-struct MyLogger {
-    buf: Vec<u8>,
-}
-impl MyLogger {
-    fn new() -> Self {
-        Self { buf: vec![] }
-    }
-}
-impl io::Write for MyLogger {
-    fn write(&mut self, buf: &[u8]) -> ::std::io::Result<usize> {
-        self.buf.extend_from_slice(buf);
-        if let Some(byte) = buf.last() {
-            if *byte == '\n' as u8 {
-                let s = ::std::str::from_utf8(&self.buf)
-                    .map_err(|_| ::std::io::Error::new(::std::io::ErrorKind::InvalidData, "bad utf8"))?;
-                info!("{}", s);
-            }
-        }
-        Ok(buf.len())
-    }
-    fn flush(&mut self) -> ::std::io::Result<()> {
-        panic!("unsupported")
-    }
-}
-
-
 fn init_db_sweeper(ctx: Ctx) {
     thread::spawn(move || {
         loop {
@@ -163,8 +134,17 @@ pub fn start(host: &str) -> Result<()> {
     info!(" ** Listening at {} **", host);
     rouille::start_server(&host, move |request| {
         let ctx = ctx.clone();
+        let now = Local::now().format("%Y-%m-%d %H:%M%S");
+        let log_ok = |req: &rouille::Request, resp: &rouille::Response, elap: time::Duration| {
+            let ms = (elap.as_secs() * 1_000) as f32 + (elap.subsec_nanos() as f32 / 1_000_000.);
+            info!("[{}] {} {} -> {} ({}ms)", now, req.method(), req.raw_url(), resp.status_code, ms)
+        };
+        let log_err = |req: &rouille::Request, elap: time::Duration| {
+            let ms = (elap.as_secs() * 1_000) as f32 + (elap.subsec_nanos() as f32 / 1_000_000.);
+            info!("[{}] Handler Panicked: {} {} ({}ms)", now, req.method(), req.raw_url(), ms)
+        };
         // dispatch and handle errors
-        rouille::log(request, MyLogger::new(), move || {
+        rouille::log_custom(request, log_ok, log_err, move || {
             let response = match route_request(request, ctx) {
                 Ok(resp) => resp,
                 Err(e) => {
@@ -203,11 +183,13 @@ pub fn start(host: &str) -> Result<()> {
 /// Route the request to appropriate handler
 fn route_request(request: &rouille::Request, ctx: Ctx) -> Result<rouille::Response> {
     Ok(router!(request,
-        (GET)   (/)         => { handlers::home(request, &ctx)? },
-        (GET)   (/appinfo)  => { handlers::appinfo()? },
-        (POST)  (/new)      => { handlers::new_paste(request, &ctx)? },
-        (GET)   (/p/raw/{key: String}) => { handlers::view_paste_raw(request, &ctx, &key)? },
-        (GET)   (/p/{key: String})   => {
+        (GET)   ["/"]               => { handlers::home(request, &ctx)? },
+        (GET)   ["/favicon.ico"]    => { handlers::file("assets/favicon.ico")? },
+        (GET)   ["/robots.txt"]     => { handlers::file("assets/robots.txt")? },
+        (GET)   ["/appinfo"]        => { handlers::appinfo()? },
+        (POST)  ["/new"]            => { handlers::new_paste(request, &ctx)? },
+        (GET)   ["/raw/{key}", key: String] => { handlers::view_paste_raw(request, &ctx, &key)? },
+        (GET)   ["/{key}", key: String]     => {
             // return a formatted paste, or show the default empty home page
             let paste_resp = handlers::view_paste(request, &ctx, &key);
             match paste_resp {

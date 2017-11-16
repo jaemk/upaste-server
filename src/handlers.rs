@@ -2,9 +2,11 @@
 //!  - Endpoint handlers
 //!
 use std::io::{self, BufRead};
+use std::fs;
+use std::path;
 
 use rand::{self, Rng};
-use rouille::{Request, Response};
+use rouille::{self, Request, Response};
 use tera::Context;
 use rusqlite::Connection;
 
@@ -152,6 +154,16 @@ pub fn home(_req: &Request, ctx: &Ctx) -> Result<Response> {
 }
 
 
+/// Endpoint for returning a file from a given path
+pub fn file(path: &str) -> Result<Response> {
+    let path = path::Path::new(path);
+    let ext = path.extension().and_then(::std::ffi::OsStr::to_str).unwrap_or("");
+    let f = fs::File::open(&path)?;
+    Ok(Response::from_file(rouille::extension_to_mime(ext), f))
+}
+
+
+/// Return appinfo/health-check
 pub fn appinfo() -> Result<Response> {
     Ok(json!({
         "version": env!("CARGO_PKG_VERSION"),

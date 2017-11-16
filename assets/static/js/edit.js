@@ -3,7 +3,7 @@
  *
  */
 
-VIEW_BASE_URL = "/p/";
+VIEW_BASE_URL = "/";
 
 document.addEventListener("DOMContentLoaded", function() {
     var save   = document.getElementById("save-paste");     // save-paste button/element
