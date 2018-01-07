@@ -2,6 +2,7 @@ target
 upaste.conf
 static/acme_challenge
 .migrant.toml
+Migrant.toml
 .update-config
 bin
 db
