@@ -14,7 +14,7 @@ use env_logger;
 use chrono::{self, Local};
 use rusqlite::Connection;
 use r2d2_sqlite::SqliteConnectionManager;
-use r2d2::{Config, Pool};
+use r2d2::Pool;
 use tera::Tera;
 use rouille;
 use migrant_lib;
@@ -62,9 +62,8 @@ pub fn establish_connection<T: AsRef<Path>>(database_path: T) -> Connection {
 
 
 fn establish_connection_pool<T: AsRef<Path>>(database_path: T) -> DbPool {
-    let config = Config::default();
     let manager = SqliteConnectionManager::file(database_path.as_ref());
-    Pool::new(config, manager).expect("Failed to create pool.")
+    Pool::new(manager).expect("Failed to create pool.")
 }
 
 

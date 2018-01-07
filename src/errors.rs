@@ -12,7 +12,7 @@ error_chain! {
         Sqlite(rusqlite::Error);
         ParseInt(std::num::ParseIntError);
         Json(serde_json::Error);
-        DbPoolTimeout(r2d2::GetTimeout);
+        R2D2(r2d2::Error);
         Migrant(migrant_lib::Error);
     }
     errors {
