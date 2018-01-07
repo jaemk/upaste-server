@@ -18,6 +18,7 @@ use {ToResponse, FromRequestQuery, MAX_PASTE_BYTES};
 
 /// Generate a new random key
 fn gen_key(n_chars: usize) -> String {
+    #[allow(unused_imports)]
     use std::ascii::AsciiExt;
     rand::thread_rng()
         .gen_ascii_chars()
