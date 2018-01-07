@@ -6,7 +6,7 @@ use std::env;
 use std::path;
 use std::io::Write;
 
-use migrant_lib::{self, Config};
+use migrant_lib::{self, Config, DbKind};
 use clap::ArgMatches;
 use chrono::{Utc, NaiveDate, TimeZone, DateTime};
 use time::Duration;
@@ -48,34 +48,35 @@ fn delete_pastes_before<T: AsRef<path::Path>>(date: DateTime<Utc>, no_confirm: b
 pub fn handle(matches: &ArgMatches) -> Result<()> {
     if let Some(db_matches) = matches.subcommand_matches("database") {
         let dir = env::current_dir()?;
-        let config_path = match migrant_lib::search_for_config(&dir) {
+        let config_path = match migrant_lib::search_for_settings_file(&dir) {
             None => {
                 Config::init_in(&dir)
-                    .for_database(Some("sqlite"))?
+                    .database_type(DbKind::Sqlite)
                     .initialize()?;
-                match migrant_lib::search_for_config(&dir) {
-                    None => bail!("Unable to find `.migrant.toml` even though it was just saved."),
+                match migrant_lib::search_for_settings_file(&dir) {
+                    None => bail!("Unable to find `Migrant.toml` even though it was just saved."),
                     Some(p) => p,
                 }
             }
             Some(p) => p,
         };
 
-        let config = Config::load_file_only(&config_path)?;
+        let mut config = Config::from_settings_file(&config_path)?;
 
         if db_matches.is_present("setup") {
             config.setup()?;
             return Ok(())
         }
 
-        // load applied migrations from the database
-        let config = config.reload()?;
 
         match db_matches.subcommand() {
             ("shell", _) => {
                 migrant_lib::shell(&config)?;
             }
             ("migrate", _) => {
+                // load applied migrations from the database
+                let config = config.reload()?;
+
                 let res = migrant_lib::Migrator::with_config(&config)
                     .direction(migrant_lib::Direction::Up)
                     .all(true)

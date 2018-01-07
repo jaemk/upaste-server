@@ -49,8 +49,8 @@ impl Context {
 pub fn migrant_database_path() -> Option<PathBuf> {
     let dir = env::current_dir()
         .expect("failed to get current directory");
-    migrant_lib::search_for_config(&dir)
-        .and_then(|p| migrant_lib::Config::load(&p).ok())
+    migrant_lib::search_for_settings_file(&dir)
+        .and_then(|p| migrant_lib::Config::from_settings_file(&p).ok())
         .and_then(|config| config.database_path().ok())
 }
 
