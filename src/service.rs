@@ -6,7 +6,7 @@
 //!
 use std::env;
 use std::time;
-use std::path::{Path, PathBuf};
+use std::path::Path;
 use std::sync;
 use std::thread;
 use std::io::Write;
@@ -18,7 +18,7 @@ use r2d2_sqlite::SqliteConnectionManager;
 use r2d2::Pool;
 use tera::Tera;
 use rouille;
-use migrant_lib;
+use migrant_lib::{Settings, Config};
 
 use errors::*;
 use handlers;
@@ -46,13 +46,15 @@ impl Context {
 }
 
 
-/// Grab the database path from out migrant configuration file
-pub fn migrant_database_path() -> Option<PathBuf> {
-    let dir = env::current_dir()
-        .expect("failed to get current directory");
-    migrant_lib::search_for_settings_file(&dir)
-        .and_then(|p| migrant_lib::Config::from_settings_file(&p).ok())
-        .and_then(|config| config.database_path().ok())
+pub fn migrant_config() -> Result<Config> {
+    let dir = env::current_dir()?;
+    let db_path = dir.join("db/upaste");
+    let migration_dir = dir.join("migrations");
+    let settings = Settings::configure_sqlite()
+        .database_path(&db_path)?
+        .migration_location(&migration_dir)?
+        .build()?;
+    Ok(Config::with_settings(&settings))
 }
 
 
@@ -118,8 +120,9 @@ pub fn start(host: &str) -> Result<()> {
         .init();
 
     // connect to our db
-    let db = migrant_database_path()
-        .ok_or_else(|| format_err!(ErrorKind::Msg, "Can't determine database path"))?;
+    let db = migrant_config()?
+        .database_path()
+        .chain_err(|| "Can't determine database path")?;
     let db_pool = establish_connection_pool(&db);
     info!(" ** Established database connection pool **");
 

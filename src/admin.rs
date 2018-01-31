@@ -2,11 +2,10 @@
 General Admin commands
 
 */
-use std::env;
 use std::path;
 use std::io::Write;
 
-use migrant_lib::{self, Config, Settings};
+use migrant_lib;
 use clap::ArgMatches;
 use chrono::{Utc, NaiveDate, TimeZone, DateTime};
 use time::Duration;
@@ -47,14 +46,7 @@ fn delete_pastes_before<T: AsRef<path::Path>>(date: DateTime<Utc>, no_confirm: b
 
 pub fn handle(matches: &ArgMatches) -> Result<()> {
     if let Some(db_matches) = matches.subcommand_matches("database") {
-        let dir = env::current_dir()?;
-        let db_path = dir.join("db/upaste");
-        let migration_dir = dir.join("migrations");
-        let settings = Settings::configure_sqlite()
-            .database_path(&db_path)?
-            .migration_location(&migration_dir)?
-            .build()?;
-        let config = Config::with_settings(&settings);
+        let config = service::migrant_config()?;
         let was_setup = config.setup()?;
         if was_setup {
             println!("** Database migration table setup **");
@@ -91,8 +83,9 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
         let no_confirm = matches.is_present("no-confirm");
         let database_path = match matches.value_of("database") {
             Some(p) => path::PathBuf::from(p),
-            None => service::migrant_database_path()
-                .ok_or_else(|| format_err!(ErrorKind::Msg, "No config file found"))?,
+            None => service::migrant_config()?
+                .database_path()
+                .chain_err(|| "No config file found")?,
         };
         if let Some(v) = matches.value_of("date") {
             let date = {
