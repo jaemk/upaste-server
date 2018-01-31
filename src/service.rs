@@ -9,6 +9,7 @@ use std::time;
 use std::path::{Path, PathBuf};
 use std::sync;
 use std::thread;
+use std::io::Write;
 use env_logger;
 
 use chrono::{self, Local};
@@ -104,18 +105,17 @@ pub fn start(host: &str) -> Result<()> {
 
     // Set a custom logging format & change the env-var to "LOG"
     // e.g. LOG=info upaste serve
-    env_logger::LogBuilder::new()
-        .format(|record| {
-            format!("{} [{}] - [{}] -> {}",
+    env_logger::Builder::new()
+        .format(|buf, record| {
+            writeln!(buf, "{} [{}] - [{}] -> {}",
                 Local::now().format("%Y-%m-%d_%H:%M:%S"),
                 record.level(),
-                record.location().module_path(),
+                record.module_path().unwrap_or("<unknown>"),
                 record.args()
                 )
             })
         .parse(&env::var("LOG").unwrap_or_default())
-        .init()
-        .expect("failed to initialize logger");
+        .init();
 
     // connect to our db
     let db = migrant_database_path()
