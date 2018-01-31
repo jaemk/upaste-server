@@ -6,7 +6,7 @@ use std::env;
 use std::path;
 use std::io::Write;
 
-use migrant_lib::{self, Config, DbKind};
+use migrant_lib::{self, Config, Settings};
 use clap::ArgMatches;
 use chrono::{Utc, NaiveDate, TimeZone, DateTime};
 use time::Duration;
@@ -48,26 +48,17 @@ fn delete_pastes_before<T: AsRef<path::Path>>(date: DateTime<Utc>, no_confirm: b
 pub fn handle(matches: &ArgMatches) -> Result<()> {
     if let Some(db_matches) = matches.subcommand_matches("database") {
         let dir = env::current_dir()?;
-        let config_path = match migrant_lib::search_for_settings_file(&dir) {
-            None => {
-                Config::init_in(&dir)
-                    .database_type(DbKind::Sqlite)
-                    .initialize()?;
-                match migrant_lib::search_for_settings_file(&dir) {
-                    None => bail!("Unable to find `Migrant.toml` even though it was just saved."),
-                    Some(p) => p,
-                }
-            }
-            Some(p) => p,
-        };
-
-        let mut config = Config::from_settings_file(&config_path)?;
-
-        if db_matches.is_present("setup") {
-            config.setup()?;
-            return Ok(())
+        let db_path = dir.join("db/upaste");
+        let migration_dir = dir.join("migrations");
+        let settings = Settings::configure_sqlite()
+            .database_path(&db_path)?
+            .migration_location(&migration_dir)?
+            .build()?;
+        let config = Config::with_settings(&settings);
+        let was_setup = config.setup()?;
+        if was_setup {
+            println!("** Database migration table setup **");
         }
-
 
         match db_matches.subcommand() {
             ("shell", _) => {

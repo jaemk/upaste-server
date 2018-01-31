@@ -39,8 +39,6 @@ pub fn run() -> Result<()> {
                     .about("Admin functions")
                     .subcommand(SubCommand::with_name("database")
                         .about("Database functions")
-                        .subcommand(SubCommand::with_name("setup")
-                            .about("Setup database migration table"))
                         .subcommand(SubCommand::with_name("migrate")
                             .about("Look for and apply any available un-applied migrations"))
                         .subcommand(SubCommand::with_name("shell")
