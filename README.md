@@ -9,9 +9,8 @@ Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
 
 * Clone this repo
 * Update project files and download the latest binary release: `./update.py run`
-* Apply database migrations:
+* Create database and apply migrations:
     * `bin/upaste admin database migrate`
-    * Initial run will require setting up a `migrant` config with db-credentials
 * Poke around: `bin/upaste admin database shell` (requires `sqlite3` to be installed)
 
 ## Running
@@ -34,6 +33,6 @@ Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
 ## Development
 
 * Install [`rust`](https://rustup.rs/)
-* Install [`migrant`](https://github.com/jaemk/migrant) (db migration manager): `cargo install migrant`
+* Install [`migrant`](https://github.com/jaemk/migrant): db migration management
 * `cargo run -- serve`
 
