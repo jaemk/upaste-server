@@ -26,7 +26,5 @@ rusqlite = { version = "0.13", features = ["serde_json", "chrono", "bundled"] }
 r2d2 = "0.8"
 r2d2_sqlite = "0.5"
 
-# rouille = "1"
-# For new `router!` syntax and `log_custom`
-rouille = { git = "https://github.com/tomaka/rouille", rev = "b1b88b1748771a334a78e53c9cc7b21d35bdfa53" }
+rouille = "2"
 
