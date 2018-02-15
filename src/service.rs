@@ -145,21 +145,19 @@ pub fn start(host: &str) -> Result<()> {
             let ms = (elap.as_secs() * 1_000) as f32 + (elap.subsec_nanos() as f32 / 1_000_000.);
             info!("[{}] Handler Panicked: {} {} ({}ms)", now, req.method(), req.raw_url(), ms)
         };
-        // dispatch and handle errors
+
         rouille::log_custom(request, log_ok, log_err, move || {
-            let response = match route_request(request, ctx) {
-                Ok(resp) => resp,
+            match route_request(request, state) {
+                Ok(resp) => rouille::content_encoding::apply(request, resp),
                 Err(e) => {
                     use self::ErrorKind::*;
                     error!("Handler Error: {}", e);
                     match *e {
                         BadRequest(ref s) => {
-                            // bad request
                             let body = json!({"error": s});
                             body.to_resp().unwrap().with_status_code(400)
                         }
                         DoesNotExist(_) => {
-                            // not found
                             rouille::Response::html(ERROR_404).with_status_code(404)
                         }
                         UploadTooLarge(ref s) => {
