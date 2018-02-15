@@ -28,19 +28,20 @@ use {ToResponse, MAX_PASTE_AGE_SECONDS};
 
 // convenience wrapper types
 pub type DbPool = Pool<SqliteConnectionManager>;
-pub type Ctx = sync::Arc<Context>;
+pub type State = sync::Arc<Resources>;
 
 
-/// Request context with template and database access
-pub struct Context {
-    pub tera: sync::RwLock<Tera>,
-    pub db: sync::Mutex<DbPool>,
+/// Resources
+/// template and database access
+pub struct Resources {
+    pub tera: Tera,
+    pub db: DbPool,
 }
-impl Context {
+impl Resources {
     pub fn new(tera: Tera, db: DbPool) -> Self {
         Self {
-            tera: sync::RwLock::new(tera),
-            db: sync::Mutex::new(db),
+            tera: tera,
+            db: db,
         }
     }
 }
@@ -79,16 +80,14 @@ static ERROR_404: &'static str = r##"
 "##;
 
 
-fn init_db_sweeper(ctx: Ctx) {
+fn init_db_sweeper(state: State) {
     thread::spawn(move || {
         loop {
             let cutoff = chrono::Utc::now()
                 .checked_sub_signed(chrono::Duration::seconds(MAX_PASTE_AGE_SECONDS))
                 .expect("Error calculating stale cutoff date");
             let deleted: Result<i32> = (|| {
-                let conn = ctx.db.lock()
-                    .map_err(|_| format_err!(ErrorKind::SyncPoison, "lock poisoned"))?
-                    .get()?;
+                let conn = state.db.get()?;
                 Ok(models::Paste::delete_outdated(&conn, &cutoff)?)
             })();
             match deleted {
@@ -130,12 +129,13 @@ pub fn start(host: &str) -> Result<()> {
     let mut tera = compile_templates!("templates/**/*");
     tera.autoescape_on(vec!["html"]);
 
-    let ctx = sync::Arc::new(Context::new(tera, db_pool));
-    init_db_sweeper(ctx.clone());
+    let state = sync::Arc::new(Resources::new(tera, db_pool));
+    init_db_sweeper(state.clone());
 
     info!(" ** Listening at {} **", host);
     rouille::start_server(&host, move |request| {
-        let ctx = ctx.clone();
+        let state = state.clone();
+
         let now = Local::now().format("%Y-%m-%d %H:%M%S");
         let log_ok = |req: &rouille::Request, resp: &rouille::Response, elap: time::Duration| {
             let ms = (elap.as_secs() * 1_000) as f32 + (elap.subsec_nanos() as f32 / 1_000_000.);
@@ -173,32 +173,31 @@ pub fn start(host: &str) -> Result<()> {
                         _ => rouille::Response::text("Something went wrong").with_status_code(500),
                     }
                 }
-            };
-            response
+            }
         })
     });
 }
 
 
 /// Route the request to appropriate handler
-fn route_request(request: &rouille::Request, ctx: Ctx) -> Result<rouille::Response> {
+fn route_request(request: &rouille::Request, state: State) -> Result<rouille::Response> {
     Ok(router!(request,
-        (GET)   ["/"]               => { handlers::home(request, &ctx)? },
+        (GET)   ["/"]               => { handlers::home(request, &state)? },
         (GET)   ["/favicon.ico"]    => { handlers::file("assets/favicon.ico")? },
         (GET)   ["/robots.txt"]     => { handlers::file("assets/robots.txt")? },
         (GET)   ["/appinfo"]        => { handlers::appinfo()? },
-        (POST)  ["/new"]            => { handlers::new_paste(request, &ctx)? },
-        (GET)   ["/raw/{key}", key: String] => { handlers::view_paste_raw(request, &ctx, &key)? },
+        (POST)  ["/new"]            => { handlers::new_paste(request, &state)? },
+        (GET)   ["/raw/{key}", key: String] => { handlers::view_paste_raw(request, &state, &key)? },
         (GET)   ["/{key}", key: String]     => {
             // return a formatted paste, or show the default empty home page
-            let paste_resp = handlers::view_paste(request, &ctx, &key);
+            let paste_resp = handlers::view_paste(request, &state, &key);
             match paste_resp {
                 Ok(resp) => resp,
                 Err(e) => {
                     match *e {
                         ErrorKind::DoesNotExist(_) => {
                             info!("Paste not found: {}", key);
-                            handlers::home(request, &ctx)?
+                            handlers::home(request, &state)?
                         }
                         _ => return Err(e),
                     }

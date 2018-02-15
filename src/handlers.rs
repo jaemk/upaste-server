@@ -11,7 +11,7 @@ use tera::Context;
 use rusqlite::Connection;
 
 use errors::*;
-use service::Ctx;
+use service::State;
 use models::{self, CONTENT_TYPES};
 use {ToResponse, FromRequestQuery, MAX_PASTE_BYTES};
 
@@ -52,7 +52,7 @@ pub struct NewPasteQueryParams {
 
 
 /// Endpoint for creating a new paste record
-pub fn new_paste(req: &Request, ctx: &Ctx) -> Result<Response> {
+pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
     let paste_type = req.parse_query_params::<NewPasteQueryParams>()?.type_;
     let paste_type = paste_type.unwrap_or_else(|| "auto".to_string());
 
@@ -99,9 +99,7 @@ pub fn new_paste(req: &Request, ctx: &Ctx) -> Result<Response> {
     let paste_content = String::from_utf8(content)?;
 
     let new_paste = {
-        let mut conn = ctx.db.lock()
-            .map_err(|_| format_err!(ErrorKind::SyncPoison, "lock poisoned"))?
-            .get()?;
+        let mut conn = state.db.get()?;
         let trans = conn.transaction()?;
         let new_key = get_new_key(&trans)?;
         let new_paste = models::NewPaste { key: new_key, content: paste_content, content_type: paste_type };
@@ -114,43 +112,37 @@ pub fn new_paste(req: &Request, ctx: &Ctx) -> Result<Response> {
 }
 
 
-fn get_paste(ctx: &Ctx, key: &str) -> Result<models::Paste> {
-    let mut conn = ctx.db.lock()
-        .map_err(|_| format_err!(ErrorKind::SyncPoison, "lock poisoned"))?
-        .get()?;
+fn get_paste(state: &State, key: &str) -> Result<models::Paste> {
+    let mut conn = state.db.get()?;
     models::Paste::touch_and_get(&mut conn, key)
 }
 
 
 /// Endpoint for returning raw paste content
-pub fn view_paste_raw(_req: &Request, ctx: &Ctx, key: &str) -> Result<Response> {
-    let paste = get_paste(ctx, &key)?;
+pub fn view_paste_raw(_req: &Request, state: &State, key: &str) -> Result<Response> {
+    let paste = get_paste(state, &key)?;
     Ok(Response::text(paste.content))
 }
 
 
 /// Endpoint for returning formatted paste content
-pub fn view_paste(_req: &Request, ctx: &Ctx, key: &str) -> Result<Response> {
-    let paste = get_paste(ctx, &key)?;
-    let templates = ctx.tera.read()
-        .map_err(|_| format_err!(ErrorKind::SyncPoison, "lock poisoned"))?;
+pub fn view_paste(_req: &Request, state: &State, key: &str) -> Result<Response> {
+    let paste = get_paste(state, &key)?;
     let mut context = Context::new();
     context.add("paste_key", &paste.key);
     context.add("content", &paste.content);
     context.add("content_type", &paste.content_type);
     context.add("content_types", &&CONTENT_TYPES[..]);
-    let content = templates.render("core/edit.html", &context).unwrap();
+    let content = state.tera.render("core/edit.html", &context).unwrap();
     Ok(Response::html(content))
 }
 
 
 /// Endpoint for returning landing page
-pub fn home(_req: &Request, ctx: &Ctx) -> Result<Response> {
-    let templates = ctx.tera.read()
-        .map_err(|_| format_err!(ErrorKind::SyncPoison, "lock poisoned"))?;
+pub fn home(_req: &Request, state: &State) -> Result<Response> {
     let mut context = Context::new();
     context.add("content_types", &&CONTENT_TYPES[..]);
-    let content = templates.render("core/edit.html", &context).unwrap();
+    let content = state.tera.render("core/edit.html", &context).unwrap();
     Ok(Response::html(content))
 }
 
