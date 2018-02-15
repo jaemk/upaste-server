@@ -87,10 +87,10 @@ macro_rules! try_insert_to_model {
 /// ```rust,ignore
 /// pub fn exists(conn: &Connection, key: &str) -> Result<bool> {
 ///     let stmt = "select exists(select 1 from pastes where key = $1)";
-///     Ok(try_query_aggregate!([conn, stmt, &[&key]], u8) == 1)
+///     Ok(try_query_row!([conn, stmt, &[&key]], u8) == 1)
 /// }
 /// ```
-macro_rules! try_query_aggregate {
+macro_rules! try_query_row {
     ([$conn:expr, $stmt:expr, $params:expr], $row_type:ty) => {
         $conn.query_row($stmt, $params, |row| {
             let val: $row_type = row.get(0);

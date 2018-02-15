@@ -86,12 +86,12 @@ impl Paste {
 
     pub fn exists(conn: &Connection, key: &str) -> Result<bool> {
         let stmt = "select exists(select 1 from pastes where key = $1)";
-        Ok(try_query_aggregate!([conn, stmt, &[&key]], u8) == 1)
+        Ok(try_query_row!([conn, stmt, &[&key]], u8) == 1)
     }
 
     pub fn count_outdated(conn: &Connection, date: &DateTime<Utc>) -> Result<i64> {
         let stmt = "select count(*) from pastes where date_viewed < $1";
-        Ok(try_query_aggregate!([conn, stmt, &[&date.timestamp()]], i64))
+        Ok(try_query_row!([conn, stmt, &[&date.timestamp()]], i64))
     }
 
     pub fn delete_outdated(conn: &Connection, date: &DateTime<Utc>) -> Result<i32> {
