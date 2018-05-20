@@ -5,43 +5,13 @@ use std::io::{self, BufRead};
 use std::fs;
 use std::path;
 
-use rand::{self, Rng};
 use rouille::{self, Request, Response};
 use tera::Context;
-use rusqlite::Connection;
 
 use errors::*;
 use service::State;
 use models::{self, CONTENT_TYPES};
 use {ToResponse, FromRequestQuery, MAX_PASTE_BYTES};
-
-
-/// Generate a new random key
-fn gen_key(n_chars: usize) -> String {
-    #[allow(unused_imports)]
-    use std::ascii::AsciiExt;
-    rand::thread_rng()
-        .gen_ascii_chars()
-        .map(|c| c.to_ascii_lowercase())
-        .filter(|c| match *c {
-            'l' | '1' | 'i' | 'o' | '0' => false,
-            _ => true,
-        })
-        .take(n_chars)
-        .collect::<String>()
-}
-
-
-/// Create a new paste.key, making sure it isn't already in use
-fn get_new_key(conn: &Connection) -> Result<String> {
-    let mut n_chars = 5;
-    let mut new_key = gen_key(n_chars);
-    while models::Paste::exists(&conn, &new_key)? {
-        n_chars += 1;
-        new_key = gen_key(n_chars);
-    }
-    Ok(new_key)
-}
 
 
 #[derive(Debug, Deserialize)]
@@ -100,11 +70,8 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
 
     let new_paste = {
         let mut conn = state.db.get()?;
-        let trans = conn.transaction()?;
-        let new_key = get_new_key(&trans)?;
-        let new_paste = models::NewPaste { key: new_key, content: paste_content, content_type: paste_type };
-        let new_paste = new_paste.insert(&trans)?;
-        trans.commit()?;
+        let new_paste = models::NewPaste { content: paste_content, content_type: paste_type };
+        let new_paste = new_paste.insert(&mut conn)?;
         new_paste
     };
 

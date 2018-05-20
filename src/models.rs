@@ -2,8 +2,38 @@ use std::ops;
 use rusqlite::{self, Connection};
 use rusqlite::types::{FromSql, ToSql, ValueRef, FromSqlResult, ToSqlOutput};
 use chrono::{DateTime, Utc, TimeZone};
+use rand::{self, Rng};
 
 use errors::*;
+
+
+/// Generate a new random key
+fn gen_key(n_chars: usize) -> String {
+    #[allow(unused_imports)]
+    #[allow(deprecated)]
+    use std::ascii::AsciiExt;
+    rand::thread_rng()
+        .gen_ascii_chars()
+        .map(|c| c.to_ascii_lowercase())
+        .filter(|c| match *c {
+            'l' | '1' | 'i' | 'o' | '0' => false,
+            _ => true,
+        })
+        .take(n_chars)
+        .collect::<String>()
+}
+
+
+/// Create a new paste.key, making sure it isn't already in use
+fn get_new_key(conn: &Connection) -> Result<String> {
+    let mut n_chars = 5;
+    let mut new_key = gen_key(n_chars);
+    while Paste::exists(&conn, &new_key)? {
+        n_chars += 1;
+        new_key = gen_key(n_chars);
+    }
+    Ok(new_key)
+}
 
 
 #[derive(Debug, Clone)]
@@ -41,20 +71,23 @@ impl ToSql for Dt {
 
 
 pub struct NewPaste {
-    pub key: String,
     pub content: String,
     pub content_type: String,
 }
 
 impl NewPaste {
-    pub fn insert(self, conn: &Connection) -> Result<Paste> {
+    pub fn insert(self, conn: &mut Connection) -> Result<Paste> {
+        let trans = conn.transaction()?;
+        let key = get_new_key(&trans)?;
         let stmt = "insert into pastes (key, content, content_type, date_created, date_viewed) values (?, ?, ?, ?, ?)";
         let now = Dt::now();
-        Ok(try_insert_to_model!(
-                [conn, stmt, &[&self.key, &self.content, &self.content_type, &now, &now]] ;
+        let paste = try_insert_to_model!(
+                [trans, stmt, &[&key, &self.content, &self.content_type, &now, &now]] ;
                 Paste ;
                 date_created: now.clone(), date_viewed: now,
-                key: self.key, content: self.content, content_type: self.content_type))
+                key: key, content: self.content, content_type: self.content_type);
+        trans.commit()?;
+        Ok(paste)
     }
 }
 
