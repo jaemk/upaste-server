@@ -4,7 +4,6 @@ Macros
 For working with rust-postgres and iron
 */
 
-
 // -------------
 // error-chain
 // -------------
@@ -19,7 +18,6 @@ macro_rules! format_err {
     }
 }
 
-
 /// Helper for formatting strings with error-chain's `bail!` macro
 macro_rules! bail_fmt {
     ($error:expr, $str:expr) => {
@@ -29,7 +27,6 @@ macro_rules! bail_fmt {
         bail!(format_err!($error, $str, $($arg),*))
     }
 }
-
 
 /// Attempts to execute an `insert`, using provided and returned columns
 /// to return a populated instance of the associated model `struct`.
@@ -78,7 +75,6 @@ macro_rules! try_insert_to_model {
     }
 }
 
-
 /// Attempts to execute some statement that returns a single row
 /// of some `type` that implements `FromSql`
 ///
@@ -93,9 +89,8 @@ macro_rules! try_insert_to_model {
 macro_rules! try_query_row {
     ([$conn:expr, $stmt:expr, $params:expr], $row_type:ty) => {
         $conn.query_row($stmt, $params, |row| {
-            let val: $row_type = row.get(0);
-            val
+            let val: $row_type = row.get(0).unwrap();
+            Ok(val)
         })?
-    }
+    };
 }
-

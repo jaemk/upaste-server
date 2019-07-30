@@ -1,25 +1,23 @@
 //! Handlers
 //!  - Endpoint handlers
 //!
-use std::io::{self, BufRead};
 use std::fs;
+use std::io::{self, BufRead};
 use std::path;
 
 use rouille::{self, Request, Response};
 use tera::Context;
 
-use errors::*;
-use service::State;
-use models::{self, CONTENT_TYPES};
-use {ToResponse, FromRequestQuery, MAX_PASTE_BYTES};
-
+use crate::errors::*;
+use crate::models::{self, CONTENT_TYPES};
+use crate::service::State;
+use crate::{FromRequestQuery, ToResponse, MAX_PASTE_BYTES};
 
 #[derive(Debug, Deserialize)]
 pub struct NewPasteQueryParams {
-    #[serde(rename="type")]
+    #[serde(rename = "type")]
     pub type_: Option<String>,
 }
-
 
 /// Endpoint for creating a new paste record
 pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
@@ -46,7 +44,9 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
             buf.len()
         };
         stream.consume(n);
-        if n == 0 { break; }
+        if n == 0 {
+            break;
+        }
 
         byte_count += n;
         if byte_count > MAX_PASTE_BYTES {
@@ -61,7 +61,9 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
                 };
                 stream.consume(n);
                 over += n;
-                if n == 0 || over >= 10_000 { break; }
+                if n == 0 || over >= 10_000 {
+                    break;
+                }
             }
             bail_fmt!(ErrorKind::UploadTooLarge, "Upload too large")
         }
@@ -70,7 +72,10 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
 
     let new_paste = {
         let mut conn = state.db.get()?;
-        let new_paste = models::NewPaste { content: paste_content, content_type: paste_type };
+        let new_paste = models::NewPaste {
+            content: paste_content,
+            content_type: paste_type,
+        };
         let new_paste = new_paste.insert(&mut conn)?;
         new_paste
     };
@@ -78,19 +83,16 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
     Ok(json!({"message": "success", "key": &new_paste.key}).to_resp()?)
 }
 
-
 fn get_paste(state: &State, key: &str) -> Result<models::Paste> {
     let mut conn = state.db.get()?;
     models::Paste::touch_and_get(&mut conn, key)
 }
-
 
 /// Endpoint for returning raw paste content
 pub fn view_paste_raw(_req: &Request, state: &State, key: &str) -> Result<Response> {
     let paste = get_paste(state, &key)?;
     Ok(Response::text(paste.content))
 }
-
 
 /// Endpoint for returning formatted paste content
 pub fn view_paste(_req: &Request, state: &State, key: &str) -> Result<Response> {
@@ -104,7 +106,6 @@ pub fn view_paste(_req: &Request, state: &State, key: &str) -> Result<Response> 
     Ok(Response::html(content))
 }
 
-
 /// Endpoint for returning landing page
 pub fn home(_req: &Request, state: &State) -> Result<Response> {
     let mut context = Context::new();
@@ -113,20 +114,21 @@ pub fn home(_req: &Request, state: &State) -> Result<Response> {
     Ok(Response::html(content))
 }
 
-
 /// Endpoint for returning a file from a given path
 pub fn file(path: &str) -> Result<Response> {
     let path = path::Path::new(path);
-    let ext = path.extension().and_then(::std::ffi::OsStr::to_str).unwrap_or("");
+    let ext = path
+        .extension()
+        .and_then(::std::ffi::OsStr::to_str)
+        .unwrap_or("");
     let f = fs::File::open(&path)?;
     Ok(Response::from_file(rouille::extension_to_mime(ext), f))
 }
-
 
 /// Return appinfo/health-check
 pub fn appinfo() -> Result<Response> {
     Ok(json!({
         "version": env!("CARGO_PKG_VERSION"),
-    }).to_resp()?)
+    })
+    .to_resp()?)
 }
-

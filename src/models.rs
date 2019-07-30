@@ -1,11 +1,10 @@
-use std::ops;
-use rusqlite::{self, Connection};
-use rusqlite::types::{FromSql, ToSql, ValueRef, FromSqlResult, ToSqlOutput};
-use chrono::{DateTime, Utc, TimeZone};
+use chrono::{DateTime, TimeZone, Utc};
 use rand::{self, Rng};
+use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
+use rusqlite::{self, Connection};
+use std::ops;
 
-use errors::*;
-
+use crate::errors::*;
 
 /// Generate a new random key
 fn gen_key(n_chars: usize) -> String {
@@ -23,7 +22,6 @@ fn gen_key(n_chars: usize) -> String {
         .collect::<String>()
 }
 
-
 /// Create a new paste.key, making sure it isn't already in use
 fn get_new_key(conn: &Connection) -> Result<String> {
     let mut n_chars = 5;
@@ -34,7 +32,6 @@ fn get_new_key(conn: &Connection) -> Result<String> {
     }
     Ok(new_key)
 }
-
 
 #[derive(Debug, Clone)]
 pub struct Dt(DateTime<Utc>);
@@ -55,12 +52,11 @@ impl ops::DerefMut for Dt {
     }
 }
 
-
 impl FromSql for Dt {
     fn column_result(value: ValueRef) -> FromSqlResult<Self> {
-        value.as_i64().map(|timestamp| {
-            Dt(Utc.timestamp(timestamp, 0))
-        })
+        value
+            .as_i64()
+            .map(|timestamp| Dt(Utc.timestamp(timestamp, 0)))
     }
 }
 impl ToSql for Dt {
@@ -68,7 +64,6 @@ impl ToSql for Dt {
         Ok(self.timestamp().into())
     }
 }
-
 
 pub struct NewPaste {
     pub content: String,
@@ -82,7 +77,7 @@ impl NewPaste {
         let stmt = "insert into pastes (key, content, content_type, date_created, date_viewed) values (?, ?, ?, ?, ?)";
         let now = Dt::now();
         let paste = try_insert_to_model!(
-                [trans, stmt, &[&key, &self.content, &self.content_type, &now, &now]] ;
+                [trans, stmt, &[&key as &ToSql, &self.content, &self.content_type, &now, &now]] ;
                 Paste ;
                 date_created: now.clone(), date_viewed: now,
                 key: key, content: self.content, content_type: self.content_type);
@@ -90,7 +85,6 @@ impl NewPaste {
         Ok(paste)
     }
 }
-
 
 #[derive(Debug)]
 pub struct Paste {
@@ -106,15 +100,15 @@ impl Paste {
         "pastes"
     }
 
-    pub fn from_row(row: &rusqlite::Row) -> Self {
-        Self {
-            id:             row.get(0),
-            key:            row.get(1),
-            content:        row.get(2),
-            content_type:   row.get(3),
-            date_created:   row.get(4),
-            date_viewed:    row.get(5),
-        }
+    pub fn from_row(row: &rusqlite::Row) -> rusqlite::Result<Self> {
+        Ok(Self {
+            id: row.get(0).expect("row id error"),
+            key: row.get(1).expect("row key error"),
+            content: row.get(2).expect("row content error"),
+            content_type: row.get(3).expect("row content_type error"),
+            date_created: row.get(4).expect("row date_created error"),
+            date_viewed: row.get(5).expect("row date_viewed error"),
+        })
     }
 
     pub fn exists(conn: &Connection, key: &str) -> Result<bool> {
@@ -129,24 +123,26 @@ impl Paste {
 
     pub fn delete_outdated(conn: &Connection, date: &DateTime<Utc>) -> Result<i32> {
         let stmt = "delete from pastes where date_viewed < ?";
-        Ok(conn.execute(stmt, &[&date.timestamp()])?)
+        Ok(conn.execute(stmt, &[&date.timestamp()])? as i32)
     }
 
     pub fn touch_and_get(conn: &mut Connection, key: &str) -> Result<Self> {
         let stmt_1 = "update pastes set date_viewed = ? where key = ?";
         let stmt_2 = "select * from pastes where key = ?";
         let trans = conn.transaction()?;
-        trans.execute(stmt_1, &[&Dt::now(), &key])?;
-        let paste = trans.query_row(stmt_2, &[&key], Self::from_row)
+        trans.execute(stmt_1, &[&Dt::now() as &ToSql, &key])?;
+        let paste = trans
+            .query_row(stmt_2, &[&key], Self::from_row)
             .map_err(|e| match e {
-                rusqlite::Error::QueryReturnedNoRows => format_err!(ErrorKind::DoesNotExist, "paste not found"),
+                rusqlite::Error::QueryReturnedNoRows => {
+                    format_err!(ErrorKind::DoesNotExist, "paste not found")
+                }
                 _ => ErrorKind::Sqlite(e),
             })?;
         trans.commit()?;
         Ok(paste)
     }
 }
-
 
 pub static CONTENT_TYPES: [&'static str; 147] = [
     "text",

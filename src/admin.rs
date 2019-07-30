@@ -2,17 +2,17 @@
 General Admin commands
 
 */
-use std::path;
 use std::io::Write;
+use std::path;
 
-use migrant_lib;
+use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use clap::ArgMatches;
-use chrono::{Utc, NaiveDate, TimeZone, DateTime};
+use migrant_lib;
 use time::Duration;
 
-use errors::*;
-use models;
-use service;
+use crate::errors::*;
+use crate::models;
+use crate::service;
 
 /// Print a message and require y/n confirmation
 fn confirm(msg: &str) -> Result<()> {
@@ -21,28 +21,40 @@ fn confirm(msg: &str) -> Result<()> {
     let mut input = String::new();
     let stdin = ::std::io::stdin();
     stdin.read_line(&mut input).expect("Error reading stdin");
-    if input.trim().to_lowercase() == "y" { return Ok(()) }
+    if input.trim().to_lowercase() == "y" {
+        return Ok(());
+    }
     bail!("Unable to confirm");
 }
 
-
 /// Delete stale pastes that haven't been viewed prior to a given date.
-fn delete_pastes_before<T: AsRef<path::Path>>(date: DateTime<Utc>, no_confirm: bool, database_path: T) -> Result<()> {
+fn delete_pastes_before<T: AsRef<path::Path>>(
+    date: DateTime<Utc>,
+    no_confirm: bool,
+    database_path: T,
+) -> Result<()> {
     let conn = service::establish_connection(database_path.as_ref());
 
     let count = models::Paste::count_outdated(&conn, &date)?;
-    println!("** Found {} pastes that weren't viewed since {} **", count, date);
+    println!(
+        "** Found {} pastes that weren't viewed since {} **",
+        count, date
+    );
 
     if !no_confirm {
-        let conf = confirm(&format!("Are you sure you want to delete {} pastes that weren't viewed since {}? [y/n] ", count, date));
-        if conf.is_err() { return Ok(()) }
+        let conf = confirm(&format!(
+            "Are you sure you want to delete {} pastes that weren't viewed since {}? [y/n] ",
+            count, date
+        ));
+        if conf.is_err() {
+            return Ok(());
+        }
     }
 
     let n_deleted = models::Paste::delete_outdated(&conn, &date)?;
     println!("** {} pastes deleted", n_deleted);
     Ok(())
 }
-
 
 pub fn handle(matches: &ArgMatches) -> Result<()> {
     if let Some(db_matches) = matches.subcommand_matches("database") {
@@ -71,12 +83,12 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
                     }
                 }
                 let _ = res?;
-                return Ok(())
+                return Ok(());
             }
             _ => println!("see `--help`"),
         }
 
-        return Ok(())
+        return Ok(());
     }
 
     if let Some(matches) = matches.subcommand_matches("clean-before") {
@@ -95,14 +107,14 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
                 date.and_hms(0, 0, 0)
             };
             delete_pastes_before(date, no_confirm, &database_path)?;
-            return Ok(())
+            return Ok(());
         }
 
         if let Some(v) = matches.value_of("days") {
             let n = v.parse::<u32>()?;
-            let date = Utc::now() - Duration::seconds(60*60*24*n as i64);
+            let date = Utc::now() - Duration::seconds(60 * 60 * 24 * n as i64);
             delete_pastes_before(date, no_confirm, &database_path)?;
-            return Ok(())
+            return Ok(());
         }
     }
 
