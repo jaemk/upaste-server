@@ -129,6 +129,7 @@ pub fn file(path: &str) -> Result<Response> {
 pub fn appinfo() -> Result<Response> {
     Ok(json!({
         "version": env!("CARGO_PKG_VERSION"),
+        "hash": include_str!("../commit_hash.txt"),
     })
     .to_resp()?)
 }
