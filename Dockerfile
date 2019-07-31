@@ -27,6 +27,8 @@ RUN cargo build --release
 
 # copy all static files
 COPY ./migrations ./migrations
+COPY ./templates ./templates
+COPY ./assets ./assets
 
 RUN mkdir ./bin
 RUN cp ./target/release/upaste ./bin/upaste
