@@ -160,7 +160,7 @@ pub fn start(host: &str) -> Result<()> {
                 Err(e) => {
                     use self::ErrorKind::*;
                     error!("Handler Error: {}", e);
-                    match *e {
+                    match e.kind() {
                         BadRequest(ref s) => {
                             let body = json!({ "error": s });
                             body.to_resp().unwrap().with_status_code(400)
@@ -199,7 +199,7 @@ fn route_request(request: &rouille::Request, state: State) -> Result<rouille::Re
             match paste_resp {
                 Ok(resp) => resp,
                 Err(e) => {
-                    match *e {
+                    match e.kind() {
                         ErrorKind::DoesNotExist(_) => {
                             info!("Paste not found: {}", key);
                             handlers::home(request, &state)?
