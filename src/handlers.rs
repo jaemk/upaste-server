@@ -17,12 +17,14 @@ use crate::{FromRequestQuery, ToResponse, MAX_PASTE_BYTES};
 pub struct NewPasteQueryParams {
     #[serde(rename = "type")]
     pub type_: Option<String>,
+    pub ttl_seconds: Option<u32>,
 }
 
 /// Endpoint for creating a new paste record
 pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
-    let paste_type = req.parse_query_params::<NewPasteQueryParams>()?.type_;
-    let paste_type = paste_type.unwrap_or_else(|| "auto".to_string());
+    let paste_params = req.parse_query_params::<NewPasteQueryParams>()?;
+    let paste_type = paste_params.type_.unwrap_or_else(|| "auto".to_string());
+    let paste_ttl_seconds = paste_params.ttl_seconds;
 
     let mut content = match req.header("content-length") {
         Some(ct_len) => {
@@ -76,7 +78,7 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
             content: paste_content,
             content_type: paste_type,
         };
-        let new_paste = new_paste.insert(&mut conn)?;
+        let new_paste = new_paste.insert(&mut conn, paste_ttl_seconds)?;
         new_paste
     };
 

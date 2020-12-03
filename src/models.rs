@@ -1,4 +1,4 @@
-use chrono::{DateTime, TimeZone, Utc};
+use chrono::{DateTime, Duration, TimeZone, Utc};
 use rand::{self, Rng};
 use rusqlite::types::{FromSql, FromSqlResult, ToSql, ToSqlOutput, ValueRef};
 use rusqlite::{self, Connection};
@@ -71,16 +71,21 @@ pub struct NewPaste {
 }
 
 impl NewPaste {
-    pub fn insert(self, conn: &mut Connection) -> Result<Paste> {
+    pub fn insert(self, conn: &mut Connection, ttl_seconds: Option<u32>) -> Result<Paste> {
         let trans = conn.transaction()?;
         let key = get_new_key(&trans)?;
-        let stmt = "insert into pastes (key, content, content_type, date_created, date_viewed) values (?, ?, ?, ?, ?)";
+        let stmt = "insert into pastes (key, content, content_type, date_created, date_viewed, exp_date) values (?, ?, ?, ?, ?, ?)";
         let now = Dt::now();
+        let exp_date = ttl_seconds.map(|secs| {
+            Dt(now
+                .checked_add_signed(Duration::seconds(secs as i64))
+                .expect("invalid date operation"))
+        });
         let paste = try_insert_to_model!(
-                [trans, stmt, &[&key as &ToSql, &self.content, &self.content_type, &now, &now]] ;
+                [trans, stmt, &[&key as &ToSql, &self.content, &self.content_type, &now, &now, &exp_date]] ;
                 Paste ;
                 date_created: now.clone(), date_viewed: now,
-                key: key, content: self.content, content_type: self.content_type);
+                key: key, content: self.content, content_type: self.content_type, exp_date: exp_date);
         trans.commit()?;
         Ok(paste)
     }
@@ -94,6 +99,7 @@ pub struct Paste {
     pub content_type: String,
     pub date_created: Dt,
     pub date_viewed: Dt,
+    pub exp_date: Option<Dt>,
 }
 impl Paste {
     pub fn table_name() -> &'static str {
@@ -108,6 +114,7 @@ impl Paste {
             content_type: row.get(3).expect("row content_type error"),
             date_created: row.get(4).expect("row date_created error"),
             date_viewed: row.get(5).expect("row date_viewed error"),
+            exp_date: row.get(6).expect("row exp_date error"),
         })
     }
 
@@ -139,6 +146,12 @@ impl Paste {
                 }
                 _ => ErrorKind::Sqlite(e),
             })?;
+        if let Some(ref exp_date) = paste.exp_date {
+            if exp_date.0 <= Utc::now() {
+                trans.execute("delete from pastes where id = $1", &[&paste.id])?;
+                return Err(ErrorKind::DoesNotExist("paste expired".to_string()).into());
+            }
+        }
         trans.commit()?;
         Ok(paste)
     }
