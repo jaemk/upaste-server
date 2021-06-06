@@ -13,7 +13,7 @@ use crate::models::{self, CONTENT_TYPES};
 use crate::service::State;
 use crate::{FromRequestQuery, ToResponse};
 
-#[derive(Debug, Deserialize)]
+#[derive(Debug, serde::Deserialize)]
 pub struct NewPasteQueryParams {
     #[serde(rename = "type")]
     pub type_: Option<String>,
@@ -25,6 +25,7 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
     let paste_params = req.parse_query_params::<NewPasteQueryParams>()?;
     let paste_type = paste_params.type_.unwrap_or_else(|| "auto".to_string());
     let paste_ttl_seconds = paste_params.ttl_seconds;
+    let encryption_key = req.header("x-upaste-encryption-key");
 
     let mut content = match req.header("content-length") {
         Some(ct_len) => {
@@ -78,26 +79,28 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
             content: paste_content,
             content_type: paste_type,
         };
-        new_paste.insert(&mut conn, paste_ttl_seconds)?
+        new_paste.insert(&mut conn, &state.config, paste_ttl_seconds, encryption_key)?
     };
 
     json!({"message": "success", "key": &new_paste.key}).to_resp()
 }
 
-fn get_paste(state: &State, key: &str) -> Result<models::Paste> {
+fn get_paste(state: &State, key: &str, enc_key: Option<&str>) -> Result<models::Paste> {
     let mut conn = state.db.get()?;
-    models::Paste::touch_and_get(&mut conn, key)
+    models::Paste::touch_and_get(&mut conn, key, enc_key, &state.config.signing_key)
 }
 
 /// Endpoint for returning raw paste content
-pub fn view_paste_raw(_req: &Request, state: &State, key: &str) -> Result<Response> {
-    let paste = get_paste(state, &key)?;
+pub fn view_paste_raw(req: &Request, state: &State, key: &str) -> Result<Response> {
+    let enc_key = req.header("x-upaste-encryption-key");
+    let paste = get_paste(state, &key, enc_key)?;
     Ok(Response::text(paste.content))
 }
 
 /// Endpoint for returning formatted paste content
-pub fn view_paste(_req: &Request, state: &State, key: &str) -> Result<Response> {
-    let paste = get_paste(state, &key)?;
+pub fn view_paste(req: &Request, state: &State, key: &str) -> Result<Response> {
+    let enc_key = req.header("x-upaste-encryption-key");
+    let paste = get_paste(state, &key, enc_key)?;
     let mut context = Context::new();
     context.add("paste_key", &paste.key);
     context.add("content", &paste.content);

@@ -3,16 +3,6 @@
 #![recursion_limit = "1024"]
 #[macro_use]
 extern crate error_chain;
-extern crate chrono;
-extern crate clap;
-extern crate r2d2;
-extern crate r2d2_sqlite;
-extern crate rand;
-extern crate rusqlite;
-extern crate serde;
-extern crate time;
-#[macro_use]
-extern crate serde_derive;
 #[macro_use]
 extern crate serde_json;
 extern crate serde_urlencoded;
@@ -20,8 +10,6 @@ extern crate serde_urlencoded;
 extern crate tera;
 #[macro_use]
 extern crate log;
-extern crate env_logger;
-extern crate migrant_lib;
 #[macro_use]
 extern crate rouille;
 
@@ -30,6 +18,7 @@ pub mod errors;
 pub mod macros;
 
 pub mod admin;
+mod crypto;
 pub mod handlers;
 pub mod models;
 pub mod service;
@@ -132,6 +121,8 @@ pub struct Config {
 
     // key used for encrypting protected pastes
     pub encryption_key: String,
+    // key used to derive signature of paste content
+    pub signing_key: String,
 
     pub max_paste_bytes: usize,
     pub max_paste_age_seconds: i64,
@@ -151,6 +142,7 @@ impl Config {
             port: env_or("PORT", "3030").parse().expect("invalid port"),
             log_level: env_or("LOG_LEVEL", "INFO"),
             encryption_key: env_or("ENCRYPTION_KEY", "01234567890123456789012345678901"),
+            signing_key: env_or("SIGNING_KEY", "01234567890123456789012345678901"),
             max_paste_bytes: env_or("MAX_PASTE_BYTES", "1000000")
                 .parse()
                 .unwrap_or_else(|e| panic!("invalid MAX_PASTE_BYTES {:?}", e)),

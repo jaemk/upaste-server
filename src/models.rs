@@ -68,10 +68,24 @@ pub struct NewPaste {
 }
 
 impl NewPaste {
-    pub fn insert(self, conn: &mut Connection, ttl_seconds: Option<u32>) -> Result<Paste> {
+    pub fn insert(
+        self,
+        conn: &mut Connection,
+        config: &crate::Config,
+        ttl_seconds: Option<u32>,
+        encryption_key: Option<&str>,
+    ) -> Result<Paste> {
         let trans = conn.transaction()?;
         let key = get_new_key(&trans)?;
-        let stmt = "insert into pastes (key, content, content_type, date_created, date_viewed, exp_date) values (?, ?, ?, ?, ?, ?)";
+        let sig = crate::crypto::hmac_sign_with_key(&self.content, &config.signing_key);
+        let (nonce, salt, content) = if let Some(enc_key) = encryption_key {
+            let enc = crate::crypto::encrypt_with_key(&self.content, enc_key)?;
+            (Some(enc.nonce), Some(enc.salt), enc.value)
+        } else {
+            (None, None, self.content)
+        };
+
+        let stmt = "insert into pastes (key, content, content_type, date_created, date_viewed, exp_date, nonce, salt, signature) values (?, ?, ?, ?, ?, ?, ?, ?, ?)";
         let now = Dt::now();
         let exp_date = ttl_seconds.map(|secs| {
             Dt(now
@@ -79,10 +93,11 @@ impl NewPaste {
                 .expect("invalid date operation"))
         });
         let paste = try_insert_to_model!(
-                [trans, stmt, &[&key as &dyn ToSql, &self.content, &self.content_type, &now, &now, &exp_date]] ;
+                [trans, stmt, &[&key as &dyn ToSql, &content, &self.content_type, &now, &now, &exp_date, &nonce, &salt, &sig]] ;
                 Paste ;
                 date_created: now.clone(), date_viewed: now,
-                key: key, content: self.content, content_type: self.content_type, exp_date: exp_date);
+                key: key, content: content, content_type: self.content_type, exp_date: exp_date,
+                nonce: nonce, salt: salt, signature: Some(sig));
         trans.commit()?;
         Ok(paste)
     }
@@ -97,8 +112,16 @@ pub struct Paste {
     pub date_created: Dt,
     pub date_viewed: Dt,
     pub exp_date: Option<Dt>,
+    pub nonce: Option<String>,
+    pub salt: Option<String>,
+    pub signature: Option<String>,
 }
 impl Paste {
+    #[inline]
+    fn all_rows() -> &'static str {
+        "id, key, content, content_type, date_created, date_viewed, exp_date, nonce, salt, signature"
+    }
+
     pub fn table_name() -> &'static str {
         "pastes"
     }
@@ -112,6 +135,9 @@ impl Paste {
             date_created: row.get(4).expect("row date_created error"),
             date_viewed: row.get(5).expect("row date_viewed error"),
             exp_date: row.get(6).expect("row exp_date error"),
+            nonce: row.get(7).expect("row nonce error"),
+            salt: row.get(8).expect("row salt error"),
+            signature: row.get(9).expect("row signature error"),
         })
     }
 
@@ -121,8 +147,11 @@ impl Paste {
     }
 
     pub fn count_outdated(conn: &Connection, date: &DateTime<Utc>) -> Result<i64> {
-        let stmt = "select count(*) from pastes where date_viewed < $1";
-        Ok(try_query_row!([conn, stmt, &[&date.timestamp()]], i64))
+        let stmt = format!(
+            "select count({}) from pastes where date_viewed < $1",
+            Paste::all_rows()
+        );
+        Ok(try_query_row!([conn, &stmt, &[&date.timestamp()]], i64))
     }
 
     pub fn delete_outdated(conn: &Connection, date: &DateTime<Utc>) -> Result<i32> {
@@ -130,13 +159,18 @@ impl Paste {
         Ok(conn.execute(stmt, &[&date.timestamp()])? as i32)
     }
 
-    pub fn touch_and_get(conn: &mut Connection, key: &str) -> Result<Self> {
+    pub fn touch_and_get(
+        conn: &mut Connection,
+        key: &str,
+        enc_key: Option<&str>,
+        signing_key: &str,
+    ) -> Result<Self> {
         let stmt_1 = "update pastes set date_viewed = ? where key = ?";
-        let stmt_2 = "select * from pastes where key = ?";
+        let stmt_2 = format!("select {} from pastes where key = ?", Paste::all_rows());
         let trans = conn.transaction()?;
         trans.execute(stmt_1, &[&Dt::now() as &dyn ToSql, &key])?;
-        let paste = trans
-            .query_row(stmt_2, &[&key], Self::from_row)
+        let mut paste = trans
+            .query_row(&stmt_2, &[&key], Self::from_row)
             .map_err(|e| match e {
                 rusqlite::Error::QueryReturnedNoRows => {
                     format_err!(ErrorKind::DoesNotExist, "paste not found")
@@ -150,6 +184,24 @@ impl Paste {
             }
         }
         trans.commit()?;
+        if matches!(
+            (enc_key, paste.nonce.as_ref(), paste.salt.as_ref()),
+            (Some(_), Some(_), Some(_))
+        ) {
+            let enc = crate::crypto::Enc {
+                nonce: paste.nonce.clone().unwrap(),
+                salt: paste.salt.clone().unwrap(),
+                value: paste.content.clone(),
+            };
+            let dec = crate::crypto::decrypt_with_key(&enc, enc_key.unwrap())?;
+            paste.content = dec;
+        }
+        if let Some(sig) = &paste.signature {
+            if !crate::crypto::hmac_verify_with_key(&paste.content, &sig, &signing_key) {
+                error!("decryption error, invalid signature");
+                bail_fmt!(ErrorKind::BadRequest, "decryption failure")
+            }
+        }
         Ok(paste)
     }
 }
