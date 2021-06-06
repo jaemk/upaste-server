@@ -6,3 +6,5 @@ Migrant.toml
 .update-config
 bin
 db
+.idea
+.env

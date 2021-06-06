@@ -65,6 +65,7 @@ macro_rules! try_insert_to_model {
         {
             let mut stmt = $conn.prepare($stmt)?;
             let row_id = stmt.insert($params)?;
+            #[allow(clippy::redundant_field_names)]
             $model {
                 id: row_id,
                 $(

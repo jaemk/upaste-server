@@ -1,14 +1,15 @@
 #![recursion_limit = "1024"]
-#[macro_use] extern crate error_chain;
+#[macro_use]
+extern crate error_chain;
 extern crate upaste_server;
-#[macro_use] extern crate clap;
+#[macro_use]
+extern crate clap;
 
 use std::env;
-use upaste_server::service;
 use upaste_server::admin;
+use upaste_server::service;
 
-use clap::{Arg, App, SubCommand};
-
+use clap::{App, Arg, SubCommand};
 
 error_chain! {
     foreign_links {
@@ -17,24 +18,12 @@ error_chain! {
     errors {}
 }
 
-
 pub fn run() -> Result<()> {
     let matches = App::new("upaste")
         .version(crate_version!())
         .about("uPaste Server")
         .subcommand(SubCommand::with_name("serve")
-                    .about("Initialize Server")
-                    .arg(Arg::with_name("port")
-                        .long("port")
-                        .short("p")
-                        .takes_value(true)
-                        .help("Port to listen on. Defaults to 3000"))
-                    .arg(Arg::with_name("public")
-                        .long("public")
-                        .help("Serve on '0.0.0.0' instead of 'localhost'"))
-                    .arg(Arg::with_name("debug")
-                        .long("debug")
-                        .help("Output debug log info. Shortcut for setting env-var LOG=debug")))
+                    .about("Initialize Server"))
         .subcommand(SubCommand::with_name("admin")
                     .about("Admin functions")
                     .subcommand(SubCommand::with_name("database")
@@ -63,21 +52,13 @@ pub fn run() -> Result<()> {
                              .help("Auto-confirm/skip any confirmation checks"))))
         .get_matches();
 
-    if let Some(serve_matches) = matches.subcommand_matches("serve") {
-        env::set_var("LOG", "info");
-        if serve_matches.is_present("debug") {
-            env::set_var("LOG", "debug");
-        }
-
-        let port = serve_matches.value_of("port").unwrap_or("3000");
-        let host_base = if serve_matches.is_present("public") { "0.0.0.0" } else { "localhost" };
-        let host = format!("{}:{}", host_base, port);
-        service::start(&host)?;
+    if matches.subcommand_matches("serve").is_some() {
+        service::start()?;
         return Ok(());
     }
 
     if let Some(admin_matches) = matches.subcommand_matches("admin") {
-        admin::handle(admin_matches)?;;
+        admin::handle(admin_matches)?;
         return Ok(());
     }
 
@@ -85,6 +66,9 @@ pub fn run() -> Result<()> {
     Ok(())
 }
 
-
-quick_main!(run);
-
+pub fn main() {
+    if let Err(e) = run() {
+        eprintln!("Error: {:?}", e);
+        std::process::exit(1);
+    }
+}

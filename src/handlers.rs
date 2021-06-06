@@ -11,7 +11,7 @@ use tera::Context;
 use crate::errors::*;
 use crate::models::{self, CONTENT_TYPES};
 use crate::service::State;
-use crate::{FromRequestQuery, ToResponse, MAX_PASTE_BYTES};
+use crate::{FromRequestQuery, ToResponse};
 
 #[derive(Debug, Deserialize)]
 pub struct NewPasteQueryParams {
@@ -29,7 +29,7 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
     let mut content = match req.header("content-length") {
         Some(ct_len) => {
             let ct_len = ct_len.parse::<usize>()?;
-            if ct_len > MAX_PASTE_BYTES {
+            if ct_len > state.config.max_paste_bytes {
                 bail_fmt!(ErrorKind::UploadTooLarge, "Upload too large")
             }
             Vec::with_capacity(ct_len)
@@ -51,7 +51,7 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
         }
 
         byte_count += n;
-        if byte_count > MAX_PASTE_BYTES {
+        if byte_count > state.config.max_paste_bytes {
             error!("Paste too large");
             // See if we can drain the rest of the stream and send a real response
             // before we kill the connection
@@ -78,11 +78,10 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
             content: paste_content,
             content_type: paste_type,
         };
-        let new_paste = new_paste.insert(&mut conn, paste_ttl_seconds)?;
-        new_paste
+        new_paste.insert(&mut conn, paste_ttl_seconds)?
     };
 
-    Ok(json!({"message": "success", "key": &new_paste.key}).to_resp()?)
+    json!({"message": "success", "key": &new_paste.key}).to_resp()
 }
 
 fn get_paste(state: &State, key: &str) -> Result<models::Paste> {
@@ -128,10 +127,10 @@ pub fn file(path: &str) -> Result<Response> {
 }
 
 /// Return appinfo/health-check
-pub fn appinfo() -> Result<Response> {
-    Ok(json!({
+pub fn status() -> Result<Response> {
+    json!({
         "version": env!("CARGO_PKG_VERSION"),
-        "hash": include_str!("../commit_hash.txt"),
+        "hash": include_str!("../commit_hash.txt").trim(),
     })
-    .to_resp()?)
+    .to_resp()
 }

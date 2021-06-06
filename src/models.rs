@@ -14,10 +14,7 @@ fn gen_key(n_chars: usize) -> String {
     rand::thread_rng()
         .gen_ascii_chars()
         .map(|c| c.to_ascii_lowercase())
-        .filter(|c| match *c {
-            'l' | '1' | 'i' | 'o' | '0' => false,
-            _ => true,
-        })
+        .filter(|c| !matches!(*c, 'l' | '1' | 'i' | 'o' | '0'))
         .take(n_chars)
         .collect::<String>()
 }
@@ -82,7 +79,7 @@ impl NewPaste {
                 .expect("invalid date operation"))
         });
         let paste = try_insert_to_model!(
-                [trans, stmt, &[&key as &ToSql, &self.content, &self.content_type, &now, &now, &exp_date]] ;
+                [trans, stmt, &[&key as &dyn ToSql, &self.content, &self.content_type, &now, &now, &exp_date]] ;
                 Paste ;
                 date_created: now.clone(), date_viewed: now,
                 key: key, content: self.content, content_type: self.content_type, exp_date: exp_date);
@@ -137,7 +134,7 @@ impl Paste {
         let stmt_1 = "update pastes set date_viewed = ? where key = ?";
         let stmt_2 = "select * from pastes where key = ?";
         let trans = conn.transaction()?;
-        trans.execute(stmt_1, &[&Dt::now() as &ToSql, &key])?;
+        trans.execute(stmt_1, &[&Dt::now() as &dyn ToSql, &key])?;
         let paste = trans
             .query_row(stmt_2, &[&key], Self::from_row)
             .map_err(|e| match e {
@@ -157,7 +154,7 @@ impl Paste {
     }
 }
 
-pub static CONTENT_TYPES: [&'static str; 147] = [
+pub static CONTENT_TYPES: [&str; 147] = [
     "text",
     "abap",
     "abc",

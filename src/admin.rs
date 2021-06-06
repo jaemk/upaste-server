@@ -7,7 +7,6 @@ use std::path;
 
 use chrono::{DateTime, NaiveDate, TimeZone, Utc};
 use clap::ArgMatches;
-use migrant_lib;
 use time::Duration;
 
 use crate::errors::*;

@@ -4,7 +4,6 @@
 //!  - Mount url endpoints to `handlers` functions
 //!  - Mount static file handler
 //!
-use env_logger;
 use std::env;
 use std::io::Write;
 use std::path::Path;
@@ -16,14 +15,13 @@ use chrono::{self, Local};
 use migrant_lib::{Config, Settings};
 use r2d2::Pool;
 use r2d2_sqlite::SqliteConnectionManager;
-use rouille;
 use rusqlite::Connection;
 use tera::Tera;
 
 use crate::errors::*;
 use crate::handlers;
 use crate::models;
-use crate::{ToResponse, MAX_PASTE_AGE_SECONDS};
+use crate::ToResponse;
 
 // convenience wrapper types
 pub type DbPool = Pool<SqliteConnectionManager>;
@@ -34,10 +32,11 @@ pub type State = sync::Arc<Resources>;
 pub struct Resources {
     pub tera: Tera,
     pub db: DbPool,
+    pub config: crate::Config,
 }
 impl Resources {
-    pub fn new(tera: Tera, db: DbPool) -> Self {
-        Self { tera: tera, db: db }
+    pub fn new(tera: Tera, db: DbPool, config: crate::Config) -> Self {
+        Self { tera, db, config }
     }
 }
 
@@ -53,10 +52,8 @@ pub fn migrant_config() -> Result<Config> {
 }
 
 pub fn establish_connection<T: AsRef<Path>>(database_path: T) -> Connection {
-    Connection::open(database_path.as_ref()).expect(&format!(
-        "Error connection to {:?}.",
-        database_path.as_ref()
-    ))
+    Connection::open(database_path.as_ref())
+        .unwrap_or_else(|_| panic!("Error connection to {:?}.", database_path.as_ref()))
 }
 
 fn establish_connection_pool<T: AsRef<Path>>(database_path: T) -> DbPool {
@@ -64,7 +61,7 @@ fn establish_connection_pool<T: AsRef<Path>>(database_path: T) -> DbPool {
     Pool::new(manager).expect("Failed to create pool.")
 }
 
-static ERROR_404: &'static str = r##"
+static ERROR_404: &str = r##"
 <html>
     <pre>
         Nothing to see here... <img src="https://badge-cache.kominick.com/badge/~(=^.^)-meow-yellow.svg?style=social"/>
@@ -75,28 +72,24 @@ static ERROR_404: &'static str = r##"
 fn init_db_sweeper(state: State) {
     thread::spawn(move || loop {
         let cutoff = chrono::Utc::now()
-            .checked_sub_signed(chrono::Duration::seconds(MAX_PASTE_AGE_SECONDS))
+            .checked_sub_signed(chrono::Duration::seconds(
+                state.config.max_paste_age_seconds,
+            ))
             .expect("Error calculating stale cutoff date");
         let deleted: Result<i32> = (|| {
             let conn = state.db.get()?;
-            Ok(models::Paste::delete_outdated(&conn, &cutoff)?)
+            models::Paste::delete_outdated(&conn, &cutoff)
         })();
         match deleted {
             Ok(count) => info!(" ** Cleaned out {} stale pastes **", count),
-            Err(e) => panic!("Error cleaning stale pastes: {}", e),
+            Err(e) => error!("Error cleaning stale pastes: {}", e),
         }
         thread::sleep(time::Duration::from_secs(60 * 10));
     });
 }
 
-pub fn start(host: &str) -> Result<()> {
-    // get default host
-    let host = if host.is_empty() {
-        "localhost:3000"
-    } else {
-        host
-    };
-
+pub fn start() -> Result<()> {
+    let config = crate::Config::load();
     // Set a custom logging format & change the env-var to "LOG"
     // e.g. LOG=info upaste serve
     env_logger::Builder::new()
@@ -110,7 +103,7 @@ pub fn start(host: &str) -> Result<()> {
                 record.args()
             )
         })
-        .parse(&env::var("LOG").unwrap_or_default())
+        .parse(&config.log_level)
         .init();
 
     // connect to our db
@@ -124,10 +117,11 @@ pub fn start(host: &str) -> Result<()> {
     let mut tera = compile_templates!("templates/**/*");
     tera.autoescape_on(vec!["html"]);
 
-    let state = sync::Arc::new(Resources::new(tera, db_pool));
+    let state = sync::Arc::new(Resources::new(tera, db_pool, config.clone()));
     init_db_sweeper(state.clone());
 
-    info!(" ** Listening at {} **", host);
+    let host = config.host();
+    info!(" ** Listening at {} **", &host);
     rouille::start_server(&host, move |request| {
         let state = state.clone();
 
@@ -190,7 +184,7 @@ fn route_request(request: &rouille::Request, state: State) -> Result<rouille::Re
         (GET)   ["/"]               => { handlers::home(request, &state)? },
         (GET)   ["/favicon.ico"]    => { handlers::file("assets/favicon.ico")? },
         (GET)   ["/robots.txt"]     => { handlers::file("assets/robots.txt")? },
-        (GET)   ["/appinfo"]        => { handlers::appinfo()? },
+        (GET)   ["/status"]         => { handlers::status()? },
         (POST)  ["/new"]            => { handlers::new_paste(request, &state)? },
         (GET)   ["/raw/{key}", key: String] => { handlers::view_paste_raw(request, &state, &key)? },
         (GET)   ["/{key}", key: String]     => {

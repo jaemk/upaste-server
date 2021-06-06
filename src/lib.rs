@@ -1,39 +1,41 @@
 //! Crate imports
 //!
 #![recursion_limit = "1024"]
-#[macro_use] extern crate error_chain;
+#[macro_use]
+extern crate error_chain;
 extern crate chrono;
-extern crate time;
-extern crate rand;
 extern crate clap;
-extern crate rusqlite;
 extern crate r2d2;
 extern crate r2d2_sqlite;
+extern crate rand;
+extern crate rusqlite;
 extern crate serde;
-#[macro_use] extern crate serde_derive;
-#[macro_use] extern crate serde_json;
+extern crate time;
+#[macro_use]
+extern crate serde_derive;
+#[macro_use]
+extern crate serde_json;
 extern crate serde_urlencoded;
-#[macro_use] extern crate tera;
-#[macro_use] extern crate log;
+#[macro_use]
+extern crate tera;
+#[macro_use]
+extern crate log;
 extern crate env_logger;
 extern crate migrant_lib;
-#[macro_use] extern crate rouille;
+#[macro_use]
+extern crate rouille;
 
 pub mod errors;
-#[macro_use] pub mod macros;
+#[macro_use]
+pub mod macros;
 
-pub mod service;
+pub mod admin;
 pub mod handlers;
 pub mod models;
-pub mod admin;
+pub mod service;
 
-use std::io::Read;
 use errors::*;
-
-
-const MAX_PASTE_BYTES: usize = 1_000_000;
-const MAX_PASTE_AGE_SECONDS: i64 = 60 * 60 * 24 * 30;
-
+use std::io::Read;
 
 // ------------------------------------------------
 // Traits for augmenting `rouille`
@@ -72,7 +74,6 @@ impl FromRequestBody for rouille::Request {
     }
 }
 
-
 /// Trait for parsing query string parameters from `rouille::Request` urls into some type `T`
 ///
 /// # Example
@@ -103,7 +104,6 @@ impl FromRequestQuery for rouille::Request {
     }
 }
 
-
 /// Trait for constructing `rouille::Response`s from other types
 pub trait ToResponse {
     fn to_resp(&self) -> Result<rouille::Response>;
@@ -116,3 +116,52 @@ impl ToResponse for serde_json::Value {
     }
 }
 
+fn env_or(k: &str, default: &str) -> String {
+    std::env::var(k).unwrap_or_else(|_| default.to_string())
+}
+
+#[derive(Clone)]
+pub struct Config {
+    pub version: String,
+
+    // host to listen on, defaults to localhost
+    pub host: String,
+    pub port: u16,
+
+    pub log_level: String,
+
+    // key used for encrypting protected pastes
+    pub encryption_key: String,
+
+    pub max_paste_bytes: usize,
+    pub max_paste_age_seconds: i64,
+}
+impl Config {
+    pub fn load() -> Self {
+        let version = std::fs::File::open("commit_hash.txt")
+            .map(|mut f| {
+                let mut s = String::new();
+                f.read_to_string(&mut s).expect("Error reading commit_hasg");
+                s
+            })
+            .unwrap_or_else(|_| "unknown".to_string());
+        Self {
+            version,
+            host: env_or("HOST", "localhost"),
+            port: env_or("PORT", "3030").parse().expect("invalid port"),
+            log_level: env_or("LOG_LEVEL", "INFO"),
+            encryption_key: env_or("ENCRYPTION_KEY", "01234567890123456789012345678901"),
+            max_paste_bytes: env_or("MAX_PASTE_BYTES", "1000000")
+                .parse()
+                .unwrap_or_else(|e| panic!("invalid MAX_PASTE_BYTES {:?}", e)),
+            // 60 * 60 * 24 * 30
+            max_paste_age_seconds: env_or("MAX_PASTE_AGE_SECONDS", "2592000")
+                .parse()
+                .unwrap_or_else(|e| panic!("invalid MAX_PASTE_AGE_SECONDS {:?}", e)),
+        }
+    }
+
+    pub fn host(&self) -> String {
+        format!("{}:{}", self.host, self.port)
+    }
+}
