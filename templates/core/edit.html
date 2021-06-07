@@ -19,6 +19,10 @@
         <option value="{{ c_type }}">{{ c_type }}</option>
     {% endfor %}
 </select>
+<input type="password" id="encryption-key" class="text-input" {% if content %}style="display: none;"{% endif %} placeholder="encryption password">
+{% if encryption_key_required %}
+<div id="encryption-key-required" style="display: none;"/>
+{% endif %}
 {% if content %}
     <span id="edit-paste" class="clickable button"> Edit! </span>
     <span id="save-paste" class="clickable button" style="display: none;"> Save! </span>

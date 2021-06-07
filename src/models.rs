@@ -199,7 +199,7 @@ impl Paste {
         if let Some(sig) = &paste.signature {
             if !crate::crypto::hmac_verify_with_key(&paste.content, &sig, &signing_key) {
                 error!("decryption error, invalid signature");
-                bail_fmt!(ErrorKind::BadRequest, "decryption failure")
+                bail_fmt!(ErrorKind::DecryptionError, "decryption failure")
             }
         }
         Ok(paste)

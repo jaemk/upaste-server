@@ -11,8 +11,14 @@ document.addEventListener("DOMContentLoaded", function() {
 
     var pasteType = document.getElementById("paste-type");          // ace-editor mode (syntax)
     var typeSelector = document.getElementById("type-selector");    // select ace-editor mode
+    var encryptionKeyInput = document.getElementById("encryption-key");    // select encryption-key password
     var pasteId = document.getElementById("paste-id");              // existing paste-id
     var share = document.getElementById("share");                   // share button
+    var encryptionKeyRequired = !!document.getElementById("encryption-key-required");
+
+    if (encryptionKeyRequired) {
+        alert("encryption key required");
+    }
 
     // initialize editor with theme
     var editor = ace.edit("editor");
@@ -33,11 +39,16 @@ document.addEventListener("DOMContentLoaded", function() {
             var content = editor.getValue();
             var contentType = typeSelector.value;
             if (!contentType) { contentType = "text" }
+            var encryptionKey = encryptionKeyInput.value;
+            var hasKey = !(encryptionKey === "" || encryptionKey === null || encryptionKey === undefined);
 
             var http = new XMLHttpRequest();
             var url  = "/new?type="+contentType;
             http.open("POST", url, true);
             http.setRequestHeader("Content-Type", "text/plain");
+            if (hasKey) {
+              http.setRequestHeader("x-upaste-encryption-key", encryptionKey);
+            }
             http.onreadystatechange = function() {
                 if (http.readyState !== XMLHttpRequest.DONE) { return; }
                 if (http.status != 200) {
@@ -72,8 +83,12 @@ document.addEventListener("DOMContentLoaded", function() {
             key.innerText = '';
             editor.setReadOnly(false);
 
+            // show the type selector and encryption password fields
             typeSelector.style.cssText = "";
             typeSelector.value = pasteType.value;
+            encryptionKeyInput.style.cssText = "";
+            encryptionKeyInput.value = "";
+
             share.style.cssText = "display: none;";
         });
     }

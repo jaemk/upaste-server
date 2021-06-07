@@ -11,7 +11,7 @@ use tera::Context;
 use crate::errors::*;
 use crate::models::{self, CONTENT_TYPES};
 use crate::service::State;
-use crate::{FromRequestQuery, ToResponse};
+use crate::{FromRequestBody, FromRequestQuery, ToResponse};
 
 #[derive(Debug, serde::Deserialize)]
 pub struct NewPasteQueryParams {
@@ -90,22 +90,72 @@ fn get_paste(state: &State, key: &str, enc_key: Option<&str>) -> Result<models::
     models::Paste::touch_and_get(&mut conn, key, enc_key, &state.config.signing_key)
 }
 
+#[derive(serde::Serialize)]
+struct PasteContent {
+    pub key: String,
+    pub content: String,
+    pub content_type: String,
+}
+
+pub fn view_paste_json(req: &Request, state: &State, key: &str) -> Result<Response> {
+    let enc_key = req.header("x-upaste-encryption-key");
+    let paste = get_paste(state, &key, enc_key)?;
+    let content = PasteContent {
+        key: paste.key,
+        content: paste.content,
+        content_type: paste.content_type,
+    };
+    json!({ "paste": content }).to_resp()
+}
+
 /// Endpoint for returning raw paste content
 pub fn view_paste_raw(req: &Request, state: &State, key: &str) -> Result<Response> {
     let enc_key = req.header("x-upaste-encryption-key");
-    let paste = get_paste(state, &key, enc_key)?;
-    Ok(Response::text(paste.content))
+    match get_paste(state, &key, enc_key) {
+        Ok(paste) => Ok(Response::text(paste.content)),
+        Err(e) => match e.kind() {
+            ErrorKind::DecryptionError(_) => json!({
+                "error": "decryption_key_required",
+                "message": "x-upaste-encryption-key header is required"
+            })
+            .to_resp()
+            .map(|r| r.with_status_code(400)),
+            _ => Err(e),
+        },
+    }
+}
+
+#[derive(serde::Deserialize)]
+struct ViewParams {
+    encryption_key: Option<String>,
 }
 
 /// Endpoint for returning formatted paste content
 pub fn view_paste(req: &Request, state: &State, key: &str) -> Result<Response> {
-    let enc_key = req.header("x-upaste-encryption-key");
-    let paste = get_paste(state, &key, enc_key)?;
+    let mut enc_key = req.header("x-upaste-encryption-key").map(String::from);
+    if enc_key.is_none() && req.method() == "POST" {
+        let params = req.parse_json_body::<ViewParams>()?;
+        enc_key = params.encryption_key;
+    }
     let mut context = Context::new();
-    context.add("paste_key", &paste.key);
-    context.add("content", &paste.content);
-    context.add("content_type", &paste.content_type);
-    context.add("content_types", &&CONTENT_TYPES[..]);
+    match get_paste(state, &key, enc_key.as_deref()) {
+        Ok(paste) => {
+            context.add("paste_key", &paste.key);
+            context.add("content", &paste.content);
+            context.add("content_type", &paste.content_type);
+            context.add("content_types", &&CONTENT_TYPES[..]);
+        }
+        Err(e) => match e.kind() {
+            ErrorKind::DecryptionError(_) => {
+                context.add("paste_key", &key);
+                context.add("content", &"");
+                context.add("content_type", &"");
+                context.add("content_types", &&CONTENT_TYPES[..]);
+                context.add("encryption_key_required", &true);
+            }
+            _ => return Err(e),
+        },
+    }
     let content = state.tera.render("core/edit.html", &context).unwrap();
     Ok(Response::html(content))
 }

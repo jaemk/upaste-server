@@ -33,5 +33,9 @@ error_chain! {
             description("OutOfSpace")
             display("OutOfSpace Error: {}", s)
         }
+        DecryptionError(s: String) {
+            description("DecryptionError")
+            display("DecryptionError Error: {}", s)
+        }
     }
 }
