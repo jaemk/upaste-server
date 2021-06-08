@@ -139,7 +139,7 @@ impl Config {
         Self {
             version,
             host: env_or("HOST", "localhost"),
-            port: env_or("PORT", "3030").parse().expect("invalid port"),
+            port: env_or("PORT", "3003").parse().expect("invalid port"),
             log_level: env_or("LOG_LEVEL", "INFO"),
             encryption_key: env_or("ENCRYPTION_KEY", "01234567890123456789012345678901"),
             signing_key: env_or("SIGNING_KEY", "01234567890123456789012345678901"),

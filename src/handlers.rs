@@ -148,7 +148,7 @@ pub fn view_paste(req: &Request, state: &State, key: &str) -> Result<Response> {
         Err(e) => match e.kind() {
             ErrorKind::DecryptionError(_) => {
                 context.add("paste_key", &key);
-                context.add("content", &"");
+                context.add("content", &"< encrypted >");
                 context.add("content_type", &"");
                 context.add("content_types", &&CONTENT_TYPES[..]);
                 context.add("encryption_key_required", &true);
