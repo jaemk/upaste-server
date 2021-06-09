@@ -183,7 +183,7 @@ document.addEventListener("DOMContentLoaded", function() {
         var copyLinkText = copyLink.innerText;
         var copyCodeText = copyCode.innerText;
         copyLink.addEventListener("click", function() {
-            navigator.clipboard.writeText(window.location.host + VIEW_BASE_URL + pasteId.innerText.trim());
+            navigator.clipboard.writeText(window.location.protocol + '//' + window.location.hostname + VIEW_BASE_URL + pasteId.innerText.trim());
             copyLink.innerText = copyLinkText + " ✓";
             copyCode.innerText = copyCodeText;
         });
