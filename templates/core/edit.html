@@ -8,33 +8,43 @@
 {% block title_extra %}
 {% if paste_key %}
 <span id="paste-id" class="tiny"> {{ paste_key }} </span>
-<span id="share" class="clickable button tiny"> share </span>
+<span id="copy-link" class="clickable button tiny"> copy-link </span>
+<span id="copy-code" class="clickable button tiny"> copy-code </span>
 {% endif %}
 {% endblock title_extra %}
 
 
+{% block header_left_extra %}
+{% if encrypted %}
+<span id="encryption-key-required" style="display: none;"></span>
+<input type="password" id="decryption-key" class="text-input" placeholder="decryption key required">
+<input type="submit" id="decrypt-paste" value="Decrypt" class="clickable button"> </span>
+{% endif %}
+{% endblock header_left_extra %}
+
+
 {% block header_extra %}
+
 <select id="type-selector" {% if content %}style="display: none;"{% endif %}>
     {% for c_type in content_types %}
         <option value="{{ c_type }}">{{ c_type }}</option>
     {% endfor %}
 </select>
-<input type="password" id="encryption-key" class="text-input" {% if content %}style="display: none;"{% endif %} placeholder="encryption password">
-{% if encryption_key_required %}
-<div id="encryption-key-required" style="display: none;"/>
-{% endif %}
+<input type="password" id="encryption-key" class="text-input" {% if content %}style="display: none;"{% endif %} placeholder="encryption key">
+
 {% if content %}
-    <span id="edit-paste" class="clickable button"> Edit! </span>
-    <span id="save-paste" class="clickable button" style="display: none;"> Save! </span>
+    <input type="submit" id="edit-paste" class="clickable button" value="Edit!">
+    <input type="submit" id="save-paste" class="clickable button" value="Save!" style="display: none;">
 {% else %}
-    <span id="save-paste" class="clickable button"> Save! </span>
+    <input type="submit" id="save-paste" class="clickable button" value="Save!">
 {% endif %}
+
 {% endblock header_extra %}
 
 
 {% block content %}
 <input type="hidden" id="paste-type" value="{% if content_type %}{{ content_type }}{% endif %}"/>
-    <pre id="editor">{% if content %}{{ content }}{% endif %}</pre>
+    <pre id="editor" style="{% if encrypted %} top: 100; {% else %} top: 70; {% endif %}">{% if content %}{{ content }}{% endif %}</pre>
 
     <script src="/static/js/ace-editor/ace.js" type="text/javascript" charset="utf-8"></script>
 {% endblock content %}

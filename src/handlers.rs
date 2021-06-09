@@ -151,7 +151,7 @@ pub fn view_paste(req: &Request, state: &State, key: &str) -> Result<Response> {
                 context.add("content", &"< encrypted >");
                 context.add("content_type", &"");
                 context.add("content_types", &&CONTENT_TYPES[..]);
-                context.add("encryption_key_required", &true);
+                context.add("encrypted", &true);
             }
             _ => return Err(e),
         },

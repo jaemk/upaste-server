@@ -1,6 +1,6 @@
 body {
     font-family: 'Ubuntu Mono', monospace;
-    padding: 1% 0px;
+    /*padding: 1% 0px;*/
     background-color: #272727;
     color: #efdea9;
     overflow: hidden;
@@ -8,7 +8,7 @@ body {
 
 
 /* header container */
-#header {
+.header {
     display: table;
     width: 100%;
     margin-bottom: 10px;
@@ -18,22 +18,23 @@ body {
     border-color: #8d8d8d;
 }
 /* header subcontainer */
-#header-row {
+.header-row {
     display: table-row;
 }
 /* header left side grouping */
-#header-left {
+.header-left {
     display: table-cell;
     text-align: left;
+    padding: 5px;
 }
 /* header main title */
-#header-title {
+.header-title {
     cursor: pointer;
     font-weight: bold;
     font-size: 200%;
 }
 /* header right side content */
-#header-extra {
+.header-extra {
     display: table-cell;
     text-align: right;
 }
@@ -43,7 +44,7 @@ body {
 #editor {
     margin: 0;
     position: absolute;
-    top: 70;
+    /*top: 100;*/
     left: 0;
     right: 0;
     bottom: 0;
@@ -66,8 +67,11 @@ body {
     border-width: .5px;
     border-color: grey;
     border-radius: 5px;
-    margin-bottom: 10px;
+    margin: 5px;
     padding: 5px;
+    background-color: #272727;
+    color: #efdea9;
+    font-family: 'Ubuntu Mono', monospace;
 }
 .button:hover {
     background-color: grey;

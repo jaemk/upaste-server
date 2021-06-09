@@ -15,16 +15,22 @@
     </head>
 
     <body>
-        <div id="header">
-            <div id="header-row">
-                <div id="header-left">
-                    <span id="header-title" onclick="window.location.href='/'"> &micro;Paste </span>
+        <div class="header">
+            <div class="header-row">
+                <div class="header-left">
+                    <span class="header-title" onclick="window.location.href='/'"> &micro;Paste </span>
                     {% block title_extra %}
                     {% endblock title_extra %}
                 </div>
-                <div id="header-extra">
+                <div class="header-extra">
                     {% block header_extra %}
                     {% endblock header_extra %}
+                </div>
+            </div>
+            <div class="header-row">
+                <div class="header-left">
+                    {% block header_left_extra %}
+                    {% endblock header_left_extra %}
                 </div>
             </div>
         </div>
