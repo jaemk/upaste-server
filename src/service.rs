@@ -122,7 +122,7 @@ pub fn start() -> Result<()> {
 
     let host = config.host();
     info!(" ** Listening at {} **", &host);
-    rouille::start_server(&host, move |request| {
+    rouille::start_server_with_pool(&host, None, move |request| {
         let state = state.clone();
 
         let now = Local::now().format("%Y-%m-%d %H:%M%S");
