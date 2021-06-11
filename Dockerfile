@@ -1,5 +1,5 @@
 # build the backend
-FROM rust:1.36
+FROM rust:1.52
 
 # create a new empty shell
 RUN USER=root cargo new --bin upaste
