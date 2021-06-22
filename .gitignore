@@ -8,3 +8,4 @@ bin
 db
 .idea
 .env
+commit_hash.txt
