@@ -154,9 +154,14 @@ impl Paste {
         Ok(try_query_row!([conn, &stmt, &[&date.timestamp()]], i64))
     }
 
-    pub fn delete_outdated(conn: &Connection, date: &DateTime<Utc>) -> Result<i32> {
-        let stmt = "delete from pastes where date_viewed < ?";
-        Ok(conn.execute(stmt, &[&date.timestamp()])? as i32)
+    pub fn delete_outdated(
+        conn: &Connection,
+        max_cutoff: &DateTime<Utc>,
+        now: &DateTime<Utc>,
+    ) -> Result<i32> {
+        let stmt =
+            "delete from pastes where (exp_date is not null and exp_date < $1) or date_viewed < $2";
+        Ok(conn.execute(stmt, &[&now.timestamp(), &max_cutoff.timestamp()])? as i32)
     }
 
     pub fn touch_and_get(

@@ -50,7 +50,7 @@ fn delete_pastes_before<T: AsRef<path::Path>>(
         }
     }
 
-    let n_deleted = models::Paste::delete_outdated(&conn, &date)?;
+    let n_deleted = models::Paste::delete_outdated(&conn, &date, &chrono::Utc::now())?;
     println!("** {} pastes deleted", n_deleted);
     Ok(())
 }

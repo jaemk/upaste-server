@@ -57,11 +57,31 @@ alias pp='~/bin/pp.sh'
 ```bash
 #!/bin/bash
 set -e
-if [ -z "$1" ]; then
-    curl $UPASTE_PASTEROOT -s -d @- | jq -r .key | echo "$UPASTE_READROOT_RAW/$(cat -)"
+
+if [[ -z "$UPASTE_TTL_SECONDS" ]]; then
+    ttl=
 else
-    curl $UPASTE_PASTEROOT -s -d @$1 | jq -r .key | echo "$UPASTE_READROOT_RAW/$(cat -)"
+    ttl="ttl_seconds=$UPASTE_TTL_SECONDS"
 fi
+
+function post() {
+    infile="@-"
+    if [[ ! -z "$1" ]]; then
+        infile="@$1"
+    fi
+
+    if [[ -z "$UPASTE_ENCRYPTION_KEY" ]]; then
+        curl $UPASTE_PASTEROOT?$ttl -s --data-binary $infile
+    else
+        curl $UPASTE_PASTEROOT?$ttl -s --data-binary $infile -H "x-upaste-encryption-key: $UPASTE_ENCRYPTION_KEY"
+    fi
+}
+
+if [ -z "$1" ]; then
+    post | jq -r .key | echo "$UPASTE_READROOT_RAW/$(cat -)"
+else
+    post $1 | jq -r .key | echo "$UPASTE_READROOT_RAW/$(cat -)"
+f
 ```
 
 *pp.sh*
@@ -72,7 +92,11 @@ if [[ -z "$1" ]]; then
     $0 "$(head -n 1)"
 else
     if [[ $1 =~ ^http.* ]]; then
-        curl $1 -s
+        if [[ -z "$UPASTE_ENCRYPTION_KEY" ]]; then
+            curl $1 -s
+        else
+            curl $1 -s -H "x-upaste-encryption-key: $UPASTE_ENCRYPTION_KEY"
+        fi
     else
         $0 $UPASTE_READROOT_RAW/$1
     fi

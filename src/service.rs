@@ -78,13 +78,13 @@ fn init_db_sweeper(state: State) {
                 ))
                 .chain_err(|| "Error calculating stale cutoff date")?;
             let conn = state.db.get()?;
-            models::Paste::delete_outdated(&conn, &cutoff)
+            models::Paste::delete_outdated(&conn, &cutoff, &chrono::Utc::now())
         })();
         match deleted {
             Ok(count) => info!(" ** Cleaned out {} stale pastes **", count),
             Err(e) => error!("Error cleaning stale pastes: {}", e),
         }
-        thread::sleep(time::Duration::from_secs(60));
+        thread::sleep(time::Duration::from_secs(20));
     });
 }
 
