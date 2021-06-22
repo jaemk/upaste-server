@@ -26,7 +26,7 @@ RUN rm ./target/release/deps/upaste*
 RUN cargo build --release
 
 # package
-FROM alpine:3.14
+FROM debian:buster-slim
 RUN mkdir /upaste
 WORKDIR /upaste
 
@@ -39,5 +39,4 @@ COPY ./migrations ./migrations
 COPY ./templates ./templates
 COPY ./assets ./assets
 
-# set the startup command to run your binary
-CMD ["./bin/upaste", "serve", "--port", "80", "--public"]
+CMD ["./bin/upaste", "serve"]
