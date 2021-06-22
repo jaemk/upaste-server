@@ -182,7 +182,6 @@ pub fn file(path: &str) -> Result<Response> {
 /// Return appinfo/health-check
 pub fn status() -> Result<Response> {
     json!({
-        "version": env!("CARGO_PKG_VERSION"),
         "hash": include_str!("../commit_hash.txt").trim(),
     })
     .to_resp()

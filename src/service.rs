@@ -71,12 +71,12 @@ static ERROR_404: &str = r##"
 
 fn init_db_sweeper(state: State) {
     thread::spawn(move || loop {
-        let cutoff = chrono::Utc::now()
-            .checked_sub_signed(chrono::Duration::seconds(
-                state.config.max_paste_age_seconds,
-            ))
-            .expect("Error calculating stale cutoff date");
         let deleted: Result<i32> = (|| {
+            let cutoff = chrono::Utc::now()
+                .checked_sub_signed(chrono::Duration::seconds(
+                    state.config.max_paste_age_seconds,
+                ))
+                .chain_err(|| "Error calculating stale cutoff date")?;
             let conn = state.db.get()?;
             models::Paste::delete_outdated(&conn, &cutoff)
         })();
@@ -84,7 +84,7 @@ fn init_db_sweeper(state: State) {
             Ok(count) => info!(" ** Cleaned out {} stale pastes **", count),
             Err(e) => error!("Error cleaning stale pastes: {}", e),
         }
-        thread::sleep(time::Duration::from_secs(60 * 10));
+        thread::sleep(time::Duration::from_secs(60));
     });
 }
 
