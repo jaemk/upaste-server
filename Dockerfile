@@ -1,5 +1,5 @@
 # build the backend
-FROM rust:1.52
+FROM rust:1.52 as builder
 
 # create a new empty shell
 RUN USER=root cargo new --bin upaste
@@ -25,14 +25,19 @@ RUN rm -rf ./.git
 RUN rm ./target/release/deps/upaste*
 RUN cargo build --release
 
+# package
+FROM alpine:3.14
+RUN mkdir /upaste
+WORKDIR /upaste
+
+RUN mkdir ./bin
+COPY --from=builder /upaste/target/release/upaste ./bin/upaste
+COPY --from=builder /upaste/commit_hash.txt ./commit_hash.txt
+
 # copy all static files
 COPY ./migrations ./migrations
 COPY ./templates ./templates
 COPY ./assets ./assets
-
-RUN mkdir ./bin
-RUN cp ./target/release/upaste ./bin/upaste
-RUN rm -rf ./target
 
 # set the startup command to run your binary
 CMD ["./bin/upaste", "serve", "--port", "80", "--public"]
