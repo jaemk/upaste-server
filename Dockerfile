@@ -18,7 +18,7 @@ COPY ./src ./src
 
 # save git hash of this build
 COPY ./.git ./.git
-RUN git rev-parse HEAD | awk '{ printf "%s", $0 >"commit_hash.txt" }'
+RUN git rev-parse HEAD | head -c 7 | awk '{ printf "%s", $0 >"commit_hash.txt" }'
 RUN rm -rf ./.git
 
 # build for release
