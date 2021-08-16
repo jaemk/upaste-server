@@ -1,55 +1,50 @@
-# uPaste Server [![Build Status](https://travis-ci.org/jaemk/upaste-server.svg?branch=master)](https://travis-ci.org/jaemk/upaste-server)
+# uPaste Server
 
 > Simple standalone pastebin
 
-Also see the general pasting client, [`upaste`](https://github.com/jaemk/upaste)
+See "useful shell scripts" below for aliases to copy/paste from the command line.
 
-
-## Setup
-
-* Clone this repo
-* `cargo build --release`
-* Update project files and download the latest binary release: `./update.py run`
-* Create database and apply migrations:
-    * `cargo run -- admin database migrate`
-* Poke around: `cargo run -- admin database shell` (requires `sqlite3` to be installed)
-
-## Running
-
-* Run directly:
-    * `target/release/upaste serve --port 8000 --public`
-* With `systemd`:
-    * Copy `upaste.service.sample` to `/lib/systemd/system/upaste.service` and update it with your user/proj-dir info.
-    * Enable service: `sudo systemctl enable upaste.service` (see `upaste.service.sample` comments for more info).
-    * `sudo systemctl start upaste`
-* Behind a proxy (nginx):
-    * Copy `nginx.conf.sample` to `/etc/nginx/sites-available`, update with your project info
-    * `sudo nginx -t` to check config
-    * Setup https certs, see `letsencrypt.info`
-    * `sudo systemctl restart nginx`
-* Clean out stale posts `target/release/upaste admin clean-before --days 30 --no-confirm` (haven't been viewed in 30 days)
-    * An internal database sweeper will run every 10 minutes and delete pastes that haven't been
-      viewed within the past 30 dats.
 
 ## Development
 
-* Install [`rust`](https://rustup.rs/)
-* Install [`migrant`](https://github.com/jaemk/migrant): db migration management
+* Clone this repo
+* `cargo run -- admin database migrate`
 * `cargo run -- serve`
 
+## Running
+
+* Build a docker image: `./docker.sh build`
+    * env: `REGISTRY` to change the docker registry name used
+* Run the image directly or
+* Run using `./docker.sh run`:
+    * env: `PORT_MAP` to change the container port mapping
+    * Note: The script will pass the `--env-file .env.docker` to inject environment variables into the container
+    
 ## Useful shell scripts
 
-*.bashrc*
+* `curl` and `jq` required
+
+### In your *.bashrc*
 ```bash
 # paste vars
 export UPASTE_PASTEROOT=https://doma.in/new
 export UPASTE_READROOT=https://doma.in
 export UPASTE_READROOT_RAW=https://doma.in/raw
 
+# set to a value shared amongst your machines if
+# you want to securely copy/paste between them
+export UPASTE_ENCRYPTION_KEY=
+
 ## paste helpers
 # copy from stdin or a file
+# ex.
+#  * copy from stdin: pc
+#  * copy from file:  pc infile.txt
 alias pc='~/bin/pc.sh'
+
 # paste from a url or code
+# ex.
+#  * paste to stdout: pp $code
 alias pp='~/bin/pp.sh'
 ```
 

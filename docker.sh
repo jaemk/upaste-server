@@ -4,7 +4,10 @@ set -ex
 
 cmd="$1"
 version="$(git rev-parse HEAD | awk '{ printf "%s", substr($0, 0, 7) }')"
-reg="docker.jaemk.me"
+
+# options
+reg="${REGISTRY:-docker.jaemk.me}"
+port_map="${PORT_MAP:-127.0.0.1:3900:3003}"
 
 if [ -z "$cmd" ]; then
     echo "missing command..."
@@ -20,9 +23,12 @@ elif [ "$cmd" = "push" ]; then
     docker push $reg/upaste:latest
 elif [ "$cmd" = "run" ]; then
     # hint, volume required: docker volume create upastedata
-    docker run --rm --init -p 3900:3003 --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest
+    $0 build
+    docker run --rm -it --init -p 3900:3003 --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest
 elif [ "$cmd" = "shell" ]; then
+    $0 build
     docker run --rm -it --init -p 3900:3003 --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest /bin/bash
 elif [ "$cmd" = "migrate" ]; then
-    docker run --rm --init -p 3900:3003 --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest ./bin/upaste admin database migrate
+    $0 build
+    docker run --rm -it --init -p 3900:3003 --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest ./bin/upaste admin database migrate
 fi

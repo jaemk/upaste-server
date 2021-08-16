@@ -39,4 +39,4 @@ COPY ./migrations ./migrations
 COPY ./templates ./templates
 COPY ./assets ./assets
 
-CMD ["./bin/upaste", "serve"]
+CMD ./bin/upaste admin database migrate && ./bin/upaste serve
