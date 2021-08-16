@@ -31,8 +31,11 @@ export UPASTE_PASTEROOT=https://doma.in/new
 export UPASTE_READROOT=https://doma.in
 export UPASTE_READROOT_RAW=https://doma.in/raw
 
-# set to a value shared amongst your machines if
-# you want to securely copy/paste between them
+# Set to a value shared amongst your machines if
+# you want to "securely" copy/paste between them.
+# Content is de/encrypted server-side using the key
+# provided. The "security" is encryption at rest and
+# preventing others from stumbling on your paste's "code".
 export UPASTE_ENCRYPTION_KEY=
 
 ## paste helpers
