@@ -24,11 +24,11 @@ elif [ "$cmd" = "push" ]; then
 elif [ "$cmd" = "run" ]; then
     # hint, volume required: docker volume create upastedata
     $0 build
-    docker run --rm -it --init -p 3900:3003 --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest
+    docker run --rm -it --init -p $port_map --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest
 elif [ "$cmd" = "shell" ]; then
     $0 build
-    docker run --rm -it --init -p 3900:3003 --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest /bin/bash
+    docker run --rm -it --init -p $port_map --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest /bin/bash
 elif [ "$cmd" = "migrate" ]; then
     $0 build
-    docker run --rm -it --init -p 3900:3003 --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest ./bin/upaste admin database migrate
+    docker run --rm -it --init -p $port_map --env-file .env.docker --mount source=upastedata,destination=/upaste/db $reg/upaste:latest ./bin/upaste admin database migrate
 fi
