@@ -1,5 +1,5 @@
 # build the backend
-FROM rust:1.53 as builder
+FROM rust:1.58.1-bullseye as builder
 
 # create a new empty shell
 RUN USER=root cargo new --bin upaste
@@ -26,7 +26,7 @@ RUN rm ./target/release/deps/upaste*
 RUN cargo build --release
 
 # package
-FROM debian:buster-slim
+FROM debian:bullseye-slim
 RUN mkdir /upaste
 WORKDIR /upaste
 
