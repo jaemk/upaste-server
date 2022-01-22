@@ -43,7 +43,7 @@ pub fn new_paste(req: &Request, state: &State) -> Result<Response> {
     loop {
         let n = {
             let buf = stream.fill_buf()?;
-            content.extend_from_slice(&buf);
+            content.extend_from_slice(buf);
             buf.len()
         };
         stream.consume(n);
@@ -99,7 +99,7 @@ struct PasteContent {
 
 pub fn view_paste_json(req: &Request, state: &State, key: &str) -> Result<Response> {
     let enc_key = req.header("x-upaste-encryption-key");
-    let paste = get_paste(state, &key, enc_key)?;
+    let paste = get_paste(state, key, enc_key)?;
     let content = PasteContent {
         key: paste.key,
         content: paste.content,
@@ -111,7 +111,7 @@ pub fn view_paste_json(req: &Request, state: &State, key: &str) -> Result<Respon
 /// Endpoint for returning raw paste content
 pub fn view_paste_raw(req: &Request, state: &State, key: &str) -> Result<Response> {
     let enc_key = req.header("x-upaste-encryption-key");
-    match get_paste(state, &key, enc_key) {
+    match get_paste(state, key, enc_key) {
         Ok(paste) => Ok(Response::text(paste.content)),
         Err(e) => match e.kind() {
             ErrorKind::DecryptionError(_) => json!({
@@ -138,7 +138,7 @@ pub fn view_paste(req: &Request, state: &State, key: &str) -> Result<Response> {
         enc_key = params.encryption_key;
     }
     let mut context = Context::new();
-    match get_paste(state, &key, enc_key.as_deref()) {
+    match get_paste(state, key, enc_key.as_deref()) {
         Ok(paste) => {
             context.add("paste_key", &paste.key);
             context.add("content", &paste.content);

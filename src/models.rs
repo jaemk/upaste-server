@@ -23,7 +23,7 @@ fn gen_key(n_chars: usize) -> String {
 fn get_new_key(conn: &Connection) -> Result<String> {
     let mut n_chars = 5;
     let mut new_key = gen_key(n_chars);
-    while Paste::exists(&conn, &new_key)? {
+    while Paste::exists(conn, &new_key)? {
         n_chars += 1;
         new_key = gen_key(n_chars);
     }
@@ -202,7 +202,7 @@ impl Paste {
             paste.content = dec;
         }
         if let Some(sig) = &paste.signature {
-            if !crate::crypto::hmac_verify_with_key(&paste.content, &sig, &signing_key) {
+            if !crate::crypto::hmac_verify_with_key(&paste.content, sig, signing_key) {
                 error!("decryption error, invalid signature");
                 bail_fmt!(ErrorKind::DecryptionError, "decryption failure")
             }

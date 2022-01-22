@@ -180,13 +180,13 @@ pub fn start() -> Result<()> {
 
 fn _handle_key(request: &rouille::Request, state: &State, key: &str) -> Result<rouille::Response> {
     // return a formatted paste, or show the default empty home page
-    let paste_resp = handlers::view_paste(request, &state, &key);
+    let paste_resp = handlers::view_paste(request, state, key);
     Ok(match paste_resp {
         Ok(resp) => resp,
         Err(e) => match e.kind() {
             ErrorKind::DoesNotExist(_) => {
                 info!("Paste not found: {}", key);
-                handlers::home(request, &state)?
+                handlers::home(request, state)?
             }
             _ => return Err(e),
         },
@@ -207,7 +207,7 @@ fn route_request(request: &rouille::Request, state: State) -> Result<rouille::Re
         (POST)  ["/{key}", key: String]     =>  { _handle_key(request, &state, &key)? },
         _ => {
             // static files
-            let static_resp = rouille::match_assets(&request, "assets");
+            let static_resp = rouille::match_assets(request, "assets");
             if static_resp.is_success() {
                 static_resp
             } else {
