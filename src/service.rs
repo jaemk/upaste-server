@@ -81,7 +81,13 @@ fn init_db_sweeper(state: State) {
             models::Paste::delete_outdated(&conn, &cutoff, &chrono::Utc::now())
         })();
         match deleted {
-            Ok(count) => info!(" ** Cleaned out {} stale pastes **", count),
+            Ok(count) => {
+                if count > 0 {
+                    info!(" ** Cleaned out {} stale pastes **", count);
+                } else {
+                    debug!(" ** Cleaned out {} stale pastes **", count);
+                }
+            }
             Err(e) => error!("Error cleaning stale pastes: {}", e),
         }
         thread::sleep(time::Duration::from_secs(20));
