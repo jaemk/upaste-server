@@ -81,7 +81,7 @@ pub fn handle(matches: &ArgMatches) -> Result<()> {
                         return Ok(());
                     }
                 }
-                let _ = res?;
+                res?;
                 return Ok(());
             }
             _ => println!("see `--help`"),
