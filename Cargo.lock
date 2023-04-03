@@ -222,7 +222,7 @@ dependencies = [
  "num-integer",
  "num-traits",
  "serde",
- "time",
+ "time 0.1.45",
  "wasm-bindgen",
  "winapi",
 ]
@@ -1175,7 +1175,7 @@ dependencies = [
  "sha1",
  "term",
  "threadpool",
- "time",
+ "time 0.1.45",
  "tiny_http",
  "url 1.7.2",
 ]
@@ -1443,14 +1443,20 @@ dependencies = [
 
 [[package]]
 name = "time"
-version = "0.1.44"
+version = "0.1.45"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6db9e6914ab8b1ae1c260a4ae7a49b6c5611b40328a735b21862567685e73255"
+checksum = "1b797afad3f312d1c66a56d11d0316f916356d11bd158fbc6ca6389ff6bf805a"
 dependencies = [
  "libc",
  "wasi 0.10.0+wasi-snapshot-preview1",
  "winapi",
 ]
+
+[[package]]
+name = "time"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fcc26de0a81a07c8352b548977862908fa9863e0e6e4f0eb36b2a9f4f8845585"
 
 [[package]]
 name = "tiny_http"
@@ -1567,7 +1573,7 @@ dependencies = [
  "serde_json",
  "serde_urlencoded",
  "tera",
- "time",
+ "time 0.2.0",
 ]
 
 [[package]]
